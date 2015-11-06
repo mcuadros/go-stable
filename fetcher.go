@@ -1,7 +1,6 @@
 package gopkg
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/mxk/go-flowrate/flowrate"
@@ -12,20 +11,20 @@ import (
 type Fetcher struct {
 	repository *Repository
 	remote     *git.Remote
+	auth       common.AuthMethod
 }
 
-func NewFetcher(r *Repository) *Fetcher {
-	return &Fetcher{repository: r}
+func NewFetcher(r *Repository, auth common.AuthMethod) *Fetcher {
+	return &Fetcher{repository: r, auth: auth}
 }
 
 func (f *Fetcher) Info() (*common.GitUploadPackInfo, error) {
 	var err error
-	f.remote, err = git.NewRemote(f.repository.URL)
+	f.remote, err = git.NewAuthenticatedRemote(f.repository.URL, f.auth)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(f.repository.URL)
 	if err := f.remote.Connect(); err != nil {
 		return nil, err
 	}

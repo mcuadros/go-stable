@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	githttp "gopkg.in/src-d/go-git.v2/clients/http"
 	"gopkg.in/src-d/go-git.v2/core"
 )
 
@@ -61,22 +62,23 @@ func (p *Proxy) defaultHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (p *Proxy) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request) error {
-	url := strings.Replace(r.URL.Path, "/info/refs", "", 1)
+	if !p.requireAuth(w, r) {
+		return nil
+	}
 
+	url := strings.Replace(r.URL.Path, "/info/refs", "", 1)
 	repository, err := NewRepository("https://github.com" + url)
 	if err != nil {
 		return err
 	}
 
-	fetcher := NewFetcher(repository)
+	fetcher := NewFetcher(repository, p.getAuth(r))
 	info, err := fetcher.Info()
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("--->", info.String())
-
-	info.Head = "refs/heads/master"
+	info.Head = info.Refs["refs/heads/master"]
 	info.Refs = map[string]core.Hash{
 		"refs/heads/master": info.Refs["refs/heads/master"],
 	}
@@ -87,14 +89,17 @@ func (p *Proxy) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request)
 }
 
 func (p *Proxy) doUploadPackResponse(w http.ResponseWriter, r *http.Request) error {
-	url := strings.Replace(r.URL.Path, "/git-upload-pack", "", 1)
+	if !p.requireAuth(w, r) {
+		return nil
+	}
 
+	url := strings.Replace(r.URL.Path, "/git-upload-pack", "", 1)
 	repository, err := NewRepository("https://github.com" + url)
 	if err != nil {
 		return err
 	}
 
-	fetcher := NewFetcher(repository)
+	fetcher := NewFetcher(repository, p.getAuth(r))
 
 	w.Write([]byte("0008NAK\n"))
 	if _, err := fetcher.Fetch(w); err != nil {
@@ -102,4 +107,20 @@ func (p *Proxy) doUploadPackResponse(w http.ResponseWriter, r *http.Request) err
 	}
 
 	return nil
+}
+
+func (p *Proxy) requireAuth(w http.ResponseWriter, r *http.Request) bool {
+	if _, _, ok := r.BasicAuth(); ok {
+		return true
+	}
+
+	w.Header().Set("WWW-Authenticate", `Basic realm="GoPkg"`)
+	w.WriteHeader(401)
+	w.Write([]byte("401 Unauthorized\n"))
+	return false
+}
+
+func (p *Proxy) getAuth(r *http.Request) *githttp.BasicAuth {
+	username, password, _ := r.BasicAuth()
+	return githttp.NewBasicAuth(username, password)
 }
