@@ -1,15 +1,21 @@
 package gopkg
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
+
+	"gopkg.in/src-d/go-git.v2/clients/common"
 	githttp "gopkg.in/src-d/go-git.v2/clients/http"
 	"gopkg.in/src-d/go-git.v2/core"
 )
 
 const DefaultBranch = "refs/heads/master"
+
+var errUncatchedRequest = errors.New("uncatched request")
 
 type Proxy struct {
 	Notifiers struct {
@@ -23,60 +29,50 @@ func NewProxy() *Proxy {
 	return &Proxy{}
 }
 
-func (p *Proxy) Start(addr string) error {
-	http.HandleFunc("/", p.handler)
-	return http.ListenAndServe(addr, nil)
+type Context struct {
+	Package *Package
+	*gin.Context
 }
 
-func (p *Proxy) StartTLS(addr, certFile, keyFile string) error {
-	http.HandleFunc("/", p.handler)
-	return http.ListenAndServeTLS(addr, certFile, keyFile, nil)
+func (p *Proxy) Handle(c *gin.Context) error {
+	pkg, err := NewPackageFromRequest(c.Request)
+	if err != nil {
+		return err
+	}
+
+	c.Set("package", pkg)
+	return p.do(&Context{pkg, c})
 }
 
-func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
+func (p *Proxy) do(c *Context) error {
 	var err error
 	switch {
-	case strings.HasSuffix(r.URL.Path, "/info/refs"):
-		err = p.doUploadPackInfoResponse(w, r)
-	case strings.HasSuffix(r.URL.Path, "/git-upload-pack"):
-		err = p.doUploadPackResponse(w, r)
+	case strings.HasSuffix(c.Request.URL.Path, "/info/refs"):
+		err = p.doUploadPackInfoResponse(c)
+	case strings.HasSuffix(c.Request.URL.Path, "/git-upload-pack"):
+		err = p.doUploadPackResponse(c)
 	default:
-		err = p.defaultHandler(w, r)
+		err = p.defaultHandler(c)
 	}
 
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-	}
+	return p.handleError(c, err)
 }
 
 var template = `<html><head><meta name="go-import" content="%s git http://%#[1]s"></head><body></body></html>`
 
-func (p *Proxy) defaultHandler(w http.ResponseWriter, r *http.Request) error {
-	if r.FormValue("go-get") != "1" {
-		return fmt.Errorf("invalid request: %s", r.URL.Path)
+func (p *Proxy) defaultHandler(c *Context) error {
+	if c.Query("go-get") != "1" {
+		return errUncatchedRequest
 	}
 
-	pkg, err := NewPackageFromRequest(r)
-	if err != nil {
-		return err
-	}
+	c.Header("Content-Type", "text/html")
+	_, err := fmt.Fprintf(c.Writer, template, c.Package.Name)
 
-	w.Header().Set("Content-Type", "text/html")
-	_, err = fmt.Fprintf(w, template, pkg.Name)
 	return err
 }
 
-func (p *Proxy) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request) error {
-	if !p.requireAuth(w, r) {
-		return nil
-	}
-
-	pkg, err := NewPackageFromRequest(r)
-	if err != nil {
-		return err
-	}
-
-	fetcher := NewFetcher(pkg, p.getAuth(r))
+func (p *Proxy) doUploadPackInfoResponse(c *Context) error {
+	fetcher := NewFetcher(c.Package, p.getAuth(c))
 	info, err := fetcher.Info()
 	if err != nil {
 		return err
@@ -87,44 +83,71 @@ func (p *Proxy) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request)
 		"refs/heads/master": info.Refs["refs/heads/master"],
 	}
 
-	w.Header().Set("Content-Type", "application/x-git-upload-pack-advertisement")
-	_, err = w.Write(info.Bytes())
-	return err
+	c.Header("Content-Type", "application/x-git-upload-pack-advertisement")
+	c.String(200, info.String())
+
+	return nil
 }
 
-func (p *Proxy) doUploadPackResponse(w http.ResponseWriter, r *http.Request) error {
-	if !p.requireAuth(w, r) {
-		return nil
-	}
-
-	pkg, err := NewPackageFromRequest(r)
-	if err != nil {
+func (p *Proxy) doUploadPackResponse(c *Context) error {
+	c.Header("Content-Type", "application/x-git-upload-pack-result")
+	if _, err := c.Writer.WriteString("0008NAK\n"); err != nil {
 		return err
 	}
 
-	fetcher := NewFetcher(pkg, p.getAuth(r))
-
-	w.Write([]byte("0008NAK\n"))
-	if _, err := fetcher.Fetch(w); err != nil {
+	fetcher := NewFetcher(c.Package, p.getAuth(c))
+	if _, err := fetcher.Fetch(c.Writer); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *Proxy) requireAuth(w http.ResponseWriter, r *http.Request) bool {
-	if _, _, ok := r.BasicAuth(); ok {
+func (p *Proxy) handleError(c *Context, err error) error {
+	if err == errUncatchedRequest {
+		return nil
+	}
+
+	c.Abort()
+	if err, ok := err.(*core.PermanentError); ok {
+		if err.Err == common.NotFoundErr {
+			return p.handleNotFoundError(c, err)
+		}
+	}
+
+	return err
+}
+
+func (p *Proxy) handleNotFoundError(c *Context, err error) error {
+	if !p.isAuth(c) {
+		p.requireAuth(c)
+	} else {
+		c.AbortWithError(404, err)
+	}
+
+	return nil
+}
+
+func (p *Proxy) requireAuth(c *Context) bool {
+	if _, _, ok := c.Request.BasicAuth(); ok {
 		return true
 	}
 
-	w.Header().Set("WWW-Authenticate", `Basic realm="GoPkg"`)
-	w.WriteHeader(401)
-	w.Write([]byte("401 Unauthorized\n"))
+	c.Header("WWW-Authenticate", `Basic realm="GoPkg"`)
+	c.String(401, "401 Unauthorized")
+	c.Abort()
+
 	return false
 }
 
-func (p *Proxy) getAuth(r *http.Request) *githttp.BasicAuth {
-	username, password, _ := r.BasicAuth()
+func (p *Proxy) getAuth(c *Context) *githttp.BasicAuth {
+	username, password, _ := c.Request.BasicAuth()
 
 	return githttp.NewBasicAuth(username, password)
+}
+
+func (p *Proxy) isAuth(c *Context) bool {
+	_, _, ok := c.Request.BasicAuth()
+
+	return ok
 }

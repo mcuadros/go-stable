@@ -9,6 +9,5 @@ type ProxyCommand struct {
 }
 
 func (c *ProxyCommand) Execute(args []string) error {
-	c.p = gopkg.NewProxy()
-	return c.p.Start(c.Addr)
+	return nil
 }

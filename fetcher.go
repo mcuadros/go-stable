@@ -1,6 +1,7 @@
 package gopkg
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/mxk/go-flowrate/flowrate"
@@ -22,10 +23,14 @@ func (f *Fetcher) Info() (*common.GitUploadPackInfo, error) {
 	var err error
 	f.remote, err = git.NewAuthenticatedRemote(f.pkg.Repository.CloneURL, f.auth)
 	if err != nil {
+		fmt.Println("remote", err)
+
 		return nil, err
 	}
 
 	if err := f.remote.Connect(); err != nil {
+		fmt.Println("connect", err)
+
 		return nil, err
 	}
 
@@ -34,6 +39,8 @@ func (f *Fetcher) Info() (*common.GitUploadPackInfo, error) {
 
 func (f *Fetcher) Fetch(w io.Writer) (*flowrate.Status, error) {
 	if _, err := f.Info(); err != nil {
+		fmt.Println("info", err)
+
 		return nil, err
 	}
 
