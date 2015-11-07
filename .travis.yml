@@ -1,0 +1,25 @@
+language: go
+
+sudo: false
+
+go:
+  - 1.5
+
+script:
+  - make test-coverage
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+before_deploy:
+  - make packages
+
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file:
+    - build/gopkg_${TRAVIS_TAG}_darwin_amd64.tar.gz
+    - build/gopkg_${TRAVIS_TAG}_linux_amd64.tar.gz
+  skip_cleanup: true
+  on:
+    tags: true

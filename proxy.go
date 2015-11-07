@@ -3,13 +3,11 @@ package gopkg
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
 	"gopkg.in/src-d/go-git.v2/clients/common"
-	githttp "gopkg.in/src-d/go-git.v2/clients/http"
+	"gopkg.in/src-d/go-git.v2/clients/http"
 	"gopkg.in/src-d/go-git.v2/core"
 )
 
@@ -19,19 +17,19 @@ var errUncatchedRequest = errors.New("uncatched request")
 
 type Proxy struct {
 	Notifiers struct {
-		InfoRefs      func(*http.Request, error)
-		GitUploadPack func(*http.Request, error)
-		RawSaved      func(*http.Request, error)
+		InfoRefs      func(*Context, error)
+		GitUploadPack func(*Context, error)
+		RawSaved      func(*Context, error)
 	}
-}
-
-func NewProxy() *Proxy {
-	return &Proxy{}
 }
 
 type Context struct {
 	Package *Package
 	*gin.Context
+}
+
+func NewProxy() *Proxy {
+	return &Proxy{}
 }
 
 func (p *Proxy) Handle(c *gin.Context) error {
@@ -140,10 +138,10 @@ func (p *Proxy) requireAuth(c *Context) bool {
 	return false
 }
 
-func (p *Proxy) getAuth(c *Context) *githttp.BasicAuth {
+func (p *Proxy) getAuth(c *Context) *http.BasicAuth {
 	username, password, _ := c.Request.BasicAuth()
 
-	return githttp.NewBasicAuth(username, password)
+	return http.NewBasicAuth(username, password)
 }
 
 func (p *Proxy) isAuth(c *Context) bool {
