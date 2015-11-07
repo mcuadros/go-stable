@@ -9,18 +9,18 @@ import (
 )
 
 type Fetcher struct {
-	repository *Repository
-	remote     *git.Remote
-	auth       common.AuthMethod
+	pkg    *Package
+	remote *git.Remote
+	auth   common.AuthMethod
 }
 
-func NewFetcher(r *Repository, auth common.AuthMethod) *Fetcher {
-	return &Fetcher{repository: r, auth: auth}
+func NewFetcher(p *Package, auth common.AuthMethod) *Fetcher {
+	return &Fetcher{pkg: p, auth: auth}
 }
 
 func (f *Fetcher) Info() (*common.GitUploadPackInfo, error) {
 	var err error
-	f.remote, err = git.NewAuthenticatedRemote(f.repository.URL, f.auth)
+	f.remote, err = git.NewAuthenticatedRemote(f.pkg.Repository.CloneURL, f.auth)
 	if err != nil {
 		return nil, err
 	}

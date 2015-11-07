@@ -49,15 +49,20 @@ func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var template = `<html><head><meta name="go-import" content="gop.kg/%s git http://gop.kg/%#[1]s"></head><body></body></html>`
+var template = `<html><head><meta name="go-import" content="%s git http://%#[1]s"></head><body></body></html>`
 
 func (p *Proxy) defaultHandler(w http.ResponseWriter, r *http.Request) error {
 	if r.FormValue("go-get") != "1" {
 		return fmt.Errorf("invalid request: %s", r.URL.Path)
 	}
 
+	pkg, err := NewPackageFromRequest(r)
+	if err != nil {
+		return err
+	}
+
 	w.Header().Set("Content-Type", "text/html")
-	_, err := fmt.Fprintf(w, template, r.URL.Path[1:])
+	_, err = fmt.Fprintf(w, template, pkg.Name)
 	return err
 }
 
@@ -66,13 +71,12 @@ func (p *Proxy) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request)
 		return nil
 	}
 
-	url := strings.Replace(r.URL.Path, "/info/refs", "", 1)
-	repository, err := NewRepository("https://github.com" + url)
+	pkg, err := NewPackageFromRequest(r)
 	if err != nil {
 		return err
 	}
 
-	fetcher := NewFetcher(repository, p.getAuth(r))
+	fetcher := NewFetcher(pkg, p.getAuth(r))
 	info, err := fetcher.Info()
 	if err != nil {
 		return err
@@ -93,13 +97,12 @@ func (p *Proxy) doUploadPackResponse(w http.ResponseWriter, r *http.Request) err
 		return nil
 	}
 
-	url := strings.Replace(r.URL.Path, "/git-upload-pack", "", 1)
-	repository, err := NewRepository("https://github.com" + url)
+	pkg, err := NewPackageFromRequest(r)
 	if err != nil {
 		return err
 	}
 
-	fetcher := NewFetcher(repository, p.getAuth(r))
+	fetcher := NewFetcher(pkg, p.getAuth(r))
 
 	w.Write([]byte("0008NAK\n"))
 	if _, err := fetcher.Fetch(w); err != nil {
@@ -122,5 +125,6 @@ func (p *Proxy) requireAuth(w http.ResponseWriter, r *http.Request) bool {
 
 func (p *Proxy) getAuth(r *http.Request) *githttp.BasicAuth {
 	username, password, _ := r.BasicAuth()
+
 	return githttp.NewBasicAuth(username, password)
 }
