@@ -15,7 +15,7 @@ type ProxySuite struct{}
 var _ = Suite(&ProxySuite{})
 
 func (s *ProxySuite) TestDefaultHandlerGoGet(c *C) {
-	ctx := s.newMockContext("GET", "http://foo.gop.kg/bar?go-get=1")
+	ctx := s.newMockContext("GET", "http://foo.gop.kg/bar@baz?go-get=1")
 
 	p := &Proxy{}
 
@@ -29,7 +29,7 @@ func (s *ProxySuite) TestDefaultHandlerGoGet(c *C) {
 }
 
 func (s *ProxySuite) TestDefaultHandler(c *C) {
-	ctx := s.newMockContext("GET", "http://foo.gop.kg/bar")
+	ctx := s.newMockContext("GET", "http://foo.gop.kg/bar@master")
 
 	p := &Proxy{}
 
@@ -40,7 +40,7 @@ func (s *ProxySuite) TestDefaultHandler(c *C) {
 }
 
 func (s *ProxySuite) TestDoUploadPackInfoResponse(c *C) {
-	ctx := s.newMockContext("POST", "http://tyba.gop.kg/git-fixture/info/refs")
+	ctx := s.newMockContext("POST", "http://tyba.gop.kg/git-fixture@master/info/refs")
 
 	p := &Proxy{}
 
@@ -54,7 +54,7 @@ func (s *ProxySuite) TestDoUploadPackInfoResponse(c *C) {
 }
 
 func (s *ProxySuite) TestDoUploadPackResponse(c *C) {
-	ctx := s.newMockContext("POST", "http://tyba.gop.kg/git-fixture/git-upload-pack")
+	ctx := s.newMockContext("POST", "http://tyba.gop.kg/git-fixture@master/git-upload-pack")
 
 	p := &Proxy{}
 
@@ -68,7 +68,7 @@ func (s *ProxySuite) TestDoUploadPackResponse(c *C) {
 }
 
 func (s *ProxySuite) TestDoUploadPackResponseNotFound(c *C) {
-	ctx := s.newMockContext("POST", "http://qux.gop.kg/foo/git-upload-pack")
+	ctx := s.newMockContext("POST", "http://qux.gop.kg/foo@baz/git-upload-pack")
 
 	p := &Proxy{}
 

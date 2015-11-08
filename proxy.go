@@ -11,8 +11,6 @@ import (
 	"gopkg.in/src-d/go-git.v2/core"
 )
 
-const DefaultBranch = "refs/heads/master"
-
 var errUncatchedRequest = errors.New("uncatched request")
 
 type Proxy struct {
@@ -75,12 +73,6 @@ func (p *Proxy) doUploadPackInfoResponse(c *Context) error {
 	if err != nil {
 		return err
 	}
-
-	info.Head = info.Refs["refs/heads/master"]
-	info.Refs = map[string]core.Hash{
-		"refs/heads/master": info.Refs["refs/heads/master"],
-	}
-
 	c.Header("Content-Type", "application/x-git-upload-pack-advertisement")
 	c.String(200, info.String())
 

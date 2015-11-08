@@ -18,6 +18,7 @@ func NewServer() *Server {
 
 func (s *Server) Run(addr ...string) error {
 	s.Use(ProxyMiddleware())
+
 	s.Any("/*default", func(c *gin.Context) {
 		message := c.Param("default")
 		c.String(http.StatusOK, message)

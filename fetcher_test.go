@@ -13,10 +13,11 @@ var _ = Suite(&FetcherSuite{})
 func (s *FetcherSuite) TestInfo(c *C) {
 	pkg := &Package{}
 	pkg.Repository.CloneURL = "https://github.com/tyba/git-fixture"
+	pkg.Repository.Rev = "master"
 
 	f := NewFetcher(pkg, nil)
-
 	info, err := f.Info()
+
 	c.Assert(err, IsNil)
 	c.Assert(info.Head.String(), Equals, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
 }
@@ -24,6 +25,7 @@ func (s *FetcherSuite) TestInfo(c *C) {
 func (s *FetcherSuite) TestFetch(c *C) {
 	pkg := &Package{}
 	pkg.Repository.CloneURL = "https://github.com/tyba/git-fixture"
+	pkg.Repository.Rev = "master"
 
 	f := NewFetcher(pkg, nil)
 
