@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/mcuadros/go-version"
-
 	"gopkg.in/sourcegraph/go-vcsurl.v1"
 	"gopkg.in/src-d/go-git.v2/clients/common"
 	"gopkg.in/src-d/go-git.v2/core"
@@ -21,9 +20,8 @@ const (
 )
 
 var (
-	ErrInvalidRequest  = errors.New("invalid request")
-	ErrVersionNotFound = errors.New("version not found")
-	UrlMode            = Subdomain
+	UrlMode           = Subdomain
+	ErrInvalidRequest = errors.New("invalid request")
 
 	ignoredPrefixes = []string{"/git-upload-pack", "/info/refs"}
 )
@@ -32,6 +30,7 @@ var (
 type Package struct {
 	Name       string
 	Repository vcsurl.RepoInfo
+	Versions   Versions
 }
 
 // NewPackage returns a new instance of Package

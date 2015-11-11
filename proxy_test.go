@@ -77,7 +77,7 @@ func (s *ProxySuite) TestDoUploadPackResponseNotFound(c *C) {
 	c.Assert(ctx.IsAborted(), Equals, true)
 	c.Assert(ctx.Writer.(*MockReponseWriter).Buffer.String(), Not(HasLen), 0)
 	c.Assert(ctx.Writer.Header(), DeepEquals, http.Header{
-		"Content-Type":     []string{"application/x-git-upload-pack-result"},
+		"Content-Type":     []string{"text/plain; charset=utf-8"},
 		"Www-Authenticate": []string{"Basic realm=\"GoPkg\""},
 	})
 }

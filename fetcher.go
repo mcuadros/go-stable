@@ -9,47 +9,35 @@ import (
 	"gopkg.in/src-d/go-git.v2/core"
 )
 
-const defaultBranch = "refs/heads/master"
-
 type Fetcher struct {
-	pkg    *Package
-	remote *git.Remote
-	auth   common.AuthMethod
+	isConnected bool
+	pkg         *Package
+	remote      *git.Remote
+	auth        common.AuthMethod
 }
 
 func NewFetcher(p *Package, auth common.AuthMethod) *Fetcher {
 	return &Fetcher{pkg: p, auth: auth}
 }
 
-func (f *Fetcher) Info() (*common.GitUploadPackInfo, error) {
-	var err error
-	f.remote, err = git.NewAuthenticatedRemote(f.pkg.Repository.CloneURL, f.auth)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := f.remote.Connect(); err != nil {
+func (f *Fetcher) Versions() (Versions, error) {
+	if err := f.connect(); err != nil {
 		return nil, err
 	}
 
 	info := f.remote.Info()
-	v := NewVersions(info).Match(f.pkg.Repository.Rev)
-	if v == nil {
-		return nil, ErrVersionNotFound
-	}
-
-	info.Head = v.Hash
-	info.Refs = map[string]core.Hash{defaultBranch: v.Hash}
-
-	return info, nil
+	return NewVersions(info), nil
 }
 
-func (f *Fetcher) Fetch(w io.Writer) (*flowrate.Status, error) {
-	if _, err := f.Info(); err != nil {
+func (f *Fetcher) Fetch(w io.Writer, ref core.Hash) (*flowrate.Status, error) {
+	if err := f.connect(); err != nil {
 		return nil, err
 	}
 
-	r, err := f.remote.FetchDefaultBranch()
+	req := &common.GitUploadPackRequest{}
+	req.Want(ref)
+
+	r, err := f.remote.Fetch(req)
 	if err != nil {
 		return nil, err
 	}
@@ -60,4 +48,24 @@ func (f *Fetcher) Fetch(w io.Writer) (*flowrate.Status, error) {
 
 	status := flow.Status()
 	return &status, err
+}
+
+func (f *Fetcher) connect() error {
+	if f.isConnected {
+		return nil
+	}
+
+	defer func() { f.isConnected = true }()
+
+	var err error
+	f.remote, err = git.NewAuthenticatedRemote(f.pkg.Repository.CloneURL, f.auth)
+	if err != nil {
+		return err
+	}
+
+	if err := f.remote.Connect(); err != nil {
+		return err
+	}
+
+	return nil
 }

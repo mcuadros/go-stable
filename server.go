@@ -1,7 +1,7 @@
 package gopkg
 
 import (
-	"net/http"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,17 +17,18 @@ func NewServer() *Server {
 }
 
 func (s *Server) Run(addr ...string) error {
+	s.setTemplates()
 	s.Use(ProxyMiddleware())
-
-	s.Any("/*default", func(c *gin.Context) {
-		message := c.Param("default")
-		c.String(http.StatusOK, message)
-	})
+	s.NoRoute(s.Public)
 
 	return s.Engine.Run(addr...)
 }
 
 func (s *Server) RunTLS(addr, certFile, keyFile string) error {
+	s.setTemplates()
+	s.Use(ProxyMiddleware())
+	s.NoRoute(s.Public)
+
 	return s.Engine.RunTLS(addr, certFile, keyFile)
 }
 
@@ -38,6 +39,8 @@ func ProxyMiddleware() gin.HandlerFunc {
 			c.AbortWithError(500, err)
 			return
 		}
+
+		fmt.Println(c.Get("package"))
 
 		c.Next()
 	}

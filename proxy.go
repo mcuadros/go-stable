@@ -11,7 +11,12 @@ import (
 	"gopkg.in/src-d/go-git.v2/core"
 )
 
-var errUncatchedRequest = errors.New("uncatched request")
+const defaultBranch = "refs/heads/master"
+
+var (
+	ErrUncatchedRequest = errors.New("uncatched request")
+	ErrVersionNotFound  = errors.New("version not found")
+)
 
 type Proxy struct {
 	Notifiers struct {
@@ -31,13 +36,15 @@ func NewProxy() *Proxy {
 }
 
 func (p *Proxy) Handle(c *gin.Context) error {
+	ctx := &Context{nil, c}
 	pkg, err := NewPackageFromRequest(c.Request)
 	if err != nil {
-		return err
+		return p.handleError(ctx, err)
 	}
 
 	c.Set("package", pkg)
-	return p.do(&Context{pkg, c})
+	ctx.Package = pkg
+	return p.do(ctx)
 }
 
 func (p *Proxy) do(c *Context) error {
@@ -54,25 +61,31 @@ func (p *Proxy) do(c *Context) error {
 	return p.handleError(c, err)
 }
 
-var template = `<html><head><meta name="go-import" content="%s git http://%#[1]s"></head><body></body></html>`
+var gogetTemplate = `<html><head><meta name="go-import" content="%s git http://%#[1]s"></head><body></body></html>`
 
 func (p *Proxy) defaultHandler(c *Context) error {
 	if c.Query("go-get") != "1" {
-		return errUncatchedRequest
+		return ErrUncatchedRequest
 	}
 
 	c.Header("Content-Type", "text/html")
-	_, err := fmt.Fprintf(c.Writer, template, c.Package.Name)
+	_, err := fmt.Fprintf(c.Writer, gogetTemplate, c.Package.Name)
 
 	return err
 }
 
 func (p *Proxy) doUploadPackInfoResponse(c *Context) error {
 	fetcher := NewFetcher(c.Package, p.getAuth(c))
-	info, err := fetcher.Info()
+	v, err := p.getVersion(fetcher, c.Package)
 	if err != nil {
 		return err
 	}
+
+	info := common.NewGitUploadPackInfo()
+	info.Head = v.Hash
+	info.Refs = map[string]core.Hash{defaultBranch: v.Hash}
+	info.Capabilities.Set("symref", "HEAD:"+defaultBranch)
+
 	c.Header("Content-Type", "application/x-git-upload-pack-advertisement")
 	c.String(200, info.String())
 
@@ -80,21 +93,40 @@ func (p *Proxy) doUploadPackInfoResponse(c *Context) error {
 }
 
 func (p *Proxy) doUploadPackResponse(c *Context) error {
+	fetcher := NewFetcher(c.Package, p.getAuth(c))
+	v, err := p.getVersion(fetcher, c.Package)
+	if err != nil {
+		return err
+	}
+
 	c.Header("Content-Type", "application/x-git-upload-pack-result")
 	if _, err := c.Writer.WriteString("0008NAK\n"); err != nil {
 		return err
 	}
 
-	fetcher := NewFetcher(c.Package, p.getAuth(c))
-	if _, err := fetcher.Fetch(c.Writer); err != nil {
+	if _, err := fetcher.Fetch(c.Writer, v.Hash); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+func (p *Proxy) getVersion(f *Fetcher, pkg *Package) (*Version, error) {
+	versions, err := f.Versions()
+	if err != nil {
+		return nil, err
+	}
+
+	v := versions.Match(pkg.Repository.Rev)
+	if v == nil {
+		return nil, ErrVersionNotFound
+	}
+
+	return v, nil
+}
+
 func (p *Proxy) handleError(c *Context, err error) error {
-	if err == errUncatchedRequest {
+	if err == ErrUncatchedRequest || err == ErrInvalidRequest {
 		return nil
 	}
 

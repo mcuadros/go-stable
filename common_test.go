@@ -47,7 +47,7 @@ func (s *SuiteCommon) TestNewRepositoryFromRequestPath(c *C) {
 	c.Assert(p.Repository.CloneURL, Equals, "git://github.com/foo/qux.git")
 	c.Assert(p.Repository.Rev, Equals, "master")
 
-	s.buildPackageFromRequest(c, "http://gop.kg/foo/qux/bar@master", ErrInvalidRequest)
+	s.buildPackageFromRequest(c, "http://gop.kg/foo/qux/bar@master", errInvalidRequest)
 }
 
 func (s *SuiteCommon) buildPackageFromRequest(c *C, reqURL string, expectedErr error) *Package {

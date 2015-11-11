@@ -26,7 +26,6 @@ func init() {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	parser := flags.NewParser(nil, flags.Default)
-	parser.AddCommand("proxy", "", "", &ProxyCommand{})
 	parser.AddCommand("server", "", "", &ServerCommand{})
 
 	if _, err := parser.Parse(); err != nil {
@@ -36,7 +35,10 @@ func main() {
 			}
 
 			parser.WriteHelp(os.Stdout)
-			fmt.Printf("\nBuild information\n  version: %s\n  build: %s\n  commit: %s\n", version, build, commit)
+			fmt.Printf(
+				"\nBuild information\n  version: %s\n  build: %s\n  commit: %s\n",
+				version, build, commit,
+			)
 		}
 
 		os.Exit(1)
