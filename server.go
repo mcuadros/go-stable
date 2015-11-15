@@ -1,10 +1,6 @@
 package gopkg
 
-import (
-	"fmt"
-
-	"github.com/gin-gonic/gin"
-)
+import "github.com/gin-gonic/gin"
 
 type Server struct {
 	*gin.Engine
@@ -39,8 +35,6 @@ func ProxyMiddleware() gin.HandlerFunc {
 			c.AbortWithError(500, err)
 			return
 		}
-
-		fmt.Println(c.Get("package"))
 
 		c.Next()
 	}

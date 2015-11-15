@@ -20,27 +20,44 @@ const (
 )
 
 var (
+	VersionSeparator  = "@"
 	UrlMode           = Subdomain
 	ErrInvalidRequest = errors.New("invalid request")
 
 	ignoredPrefixes = []string{"/git-upload-pack", "/info/refs"}
 )
 
+type PackageName string
+
+func (p PackageName) Base() string {
+	parts := strings.Split(string(p), VersionSeparator)
+	return parts[0]
+}
+
+func (p PackageName) Version() string {
+	parts := strings.Split(string(p), VersionSeparator)
+	if len(parts) < 2 {
+		return ""
+	}
+
+	return parts[1]
+}
+
 // Package represent a golang package
 type Package struct {
-	Name       string
+	Name       PackageName
 	Repository vcsurl.RepoInfo
 	Versions   Versions
 }
 
 // NewPackage returns a new instance of Package
-func NewPackage(pkgName, url string) (*Package, error) {
+func NewPackage(p PackageName, url string) (*Package, error) {
 	info, err := vcsurl.Parse(url)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Package{Name: pkgName, Repository: *info}, nil
+	return &Package{Name: p, Repository: *info}, nil
 }
 
 // NewPackageFromRequest returns a new instance of Package using the data from
@@ -98,7 +115,7 @@ func getRepository(r *http.Request) (repository, version string) {
 }
 
 func splitRepository(s string) (repository, version string) {
-	parts := strings.Split(s, "@")
+	parts := strings.Split(s, VersionSeparator)
 	if len(parts) == 1 {
 		return s, ""
 	}
@@ -106,8 +123,8 @@ func splitRepository(s string) (repository, version string) {
 	return parts[0], parts[1]
 }
 
-func getPackageName(r *http.Request) string {
-	return fmt.Sprintf("%s/%s", getHost(r), getPath(r))
+func getPackageName(r *http.Request) PackageName {
+	return PackageName(fmt.Sprintf("%s/%s", getHost(r), getPath(r)))
 }
 
 func getHost(r *http.Request) string {
@@ -120,7 +137,7 @@ func getHost(r *http.Request) string {
 
 func getPath(r *http.Request) string {
 	path := r.URL.Path[1:]
-	if strings.Count(path, "@") > 1 {
+	if strings.Count(path, VersionSeparator) > 1 {
 		return ""
 	}
 
@@ -192,24 +209,54 @@ func NewVersions(info *common.GitUploadPackInfo) Versions {
 	return versions
 }
 
-func (v Versions) Match(needed string) *Version {
+func (v Versions) Match(needed string) []*Version {
+	c := newConstrain(needed)
+
+	var names []string
+	for _, ver := range v {
+		if c.Match(version.Normalize(ver.Name)) {
+			names = append(names, ver.Name)
+		}
+	}
+
+	version.Sort(names)
+	var matched []*Version
+	for n := len(names) - 1; n >= 0; n-- {
+		matched = append(matched, v[names[n]])
+	}
+
+	return matched
+}
+
+func (v Versions) BestMatch(needed string) *Version {
 	if version, ok := v[needed]; ok {
 		return version
 	}
 
-	c := version.NewConstrainGroupFromString(needed + ".*")
-
-	var matched []string
-	for _, ver := range v {
-		if c.Match(version.Normalize(ver.Name)) {
-			matched = append(matched, ver.Name)
-		}
-	}
-
+	matched := v.Match(needed)
 	if len(matched) == 0 {
 		return nil
 	}
 
-	version.Sort(matched)
-	return v[matched[len(matched)-1]]
+	return matched[0]
+}
+
+func (v Versions) Mayor() map[string]*Version {
+	output := make(map[string]*Version, 0)
+	for i := 0; i < 100; i++ {
+		mayor := fmt.Sprintf("v%d", i)
+		if m := v.BestMatch(mayor); m != nil {
+			output[mayor] = m
+		}
+	}
+
+	return output
+}
+
+func newConstrain(needed string) *version.ConstraintGroup {
+	if needed[0] == 'v' && needed[1] >= 28 && needed[1] <= 57 {
+		needed = needed[1:]
+	}
+
+	return version.NewConstrainGroupFromString(needed + ".*")
 }

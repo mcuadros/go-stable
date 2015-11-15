@@ -1,7 +1,6 @@
 package gopkg
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 
@@ -22,7 +21,6 @@ func (s *Server) Public(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println(pkg, ok)
 	ctx.HTML(http.StatusOK, "package", gin.H{
 		"Package":  pkg,
 		"Versions": versions,
@@ -35,6 +33,10 @@ func (s *Server) setTemplates() {
 }
 
 const packageHTML = `
+{{$parent := .}}
+{{$package := .Package}}
+{{$current := .Versions.BestMatch .Package.Repository.Rev}}
+
 <!DOCTYPE html>
 <html>
 	<head>
@@ -43,10 +45,17 @@ const packageHTML = `
 	</head>
 	<body>
 		<pre>go get -u {{.Package.Name}}</pre>
-    <ul>
-    {{range .Versions}}
-      <li>{{.Name}} {{.Versions.Match .Package.Repository.Rev}}</li>
-    {{end}}
-    </ul>
+		<ul>
+			{{range $mayor, $v := .Versions.Mayor}}
+			<li>
+				<span>{{$mayor}} -> {{$v.Name}}</span>
+				<ul>
+				{{range $parent.Versions.Match $mayor}}
+				<li><a href="http://{{$package.Name.Base}}@{{.Name}}">{{.Name}}</a></li>
+				{{end}}
+				</ul>
+			</li>
+			{{end}}
+    		</ul>
 	</body>
 </html>`

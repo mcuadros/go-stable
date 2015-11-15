@@ -100,6 +100,8 @@ func (p *Proxy) doUploadPackResponse(c *Context) error {
 	}
 
 	c.Header("Content-Type", "application/x-git-upload-pack-result")
+	c.AbortWithStatus(200)
+
 	if _, err := c.Writer.WriteString("0008NAK\n"); err != nil {
 		return err
 	}
@@ -117,7 +119,7 @@ func (p *Proxy) getVersion(f *Fetcher, pkg *Package) (*Version, error) {
 		return nil, err
 	}
 
-	v := versions.Match(pkg.Repository.Rev)
+	v := versions.BestMatch(pkg.Repository.Rev)
 	if v == nil {
 		return nil, ErrVersionNotFound
 	}
