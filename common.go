@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	VersionSeparator  = "@"
+	VersionSeparator  = "!"
 	UrlMode           = Subdomain
 	ErrInvalidRequest = errors.New("invalid request")
 
