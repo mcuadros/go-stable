@@ -21,7 +21,7 @@ const (
 
 var (
 	VersionSeparator  = "!"
-	UrlMode           = Subdomain
+	UrlMode           = Path
 	ErrInvalidRequest = errors.New("invalid request")
 
 	ignoredPrefixes = []string{"/git-upload-pack", "/info/refs"}
@@ -30,17 +30,26 @@ var (
 type PackageName string
 
 func (p PackageName) Base() string {
-	parts := strings.Split(string(p), VersionSeparator)
+	parts := splitByVersionSeparator(p)
 	return parts[0]
 }
 
 func (p PackageName) Version() string {
-	parts := strings.Split(string(p), VersionSeparator)
+	parts := splitByVersionSeparator(p)
 	if len(parts) < 2 {
 		return ""
 	}
 
 	return parts[1]
+}
+
+func (p PackageName) Change(v *Version) PackageName {
+	return PackageName(p.Base() + VersionSeparator + v.Name)
+}
+
+func splitByVersionSeparator(n PackageName) []string {
+	parts := strings.Split(string(n), VersionSeparator)
+	return parts
 }
 
 // Package represent a golang package

@@ -42,16 +42,60 @@ const packageHTML = `
 	<head>
 		<meta charset="UTF-8">
 		<title>{{.Package.Name}}</title>
+		<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Raleway" />
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.css" />
+		<link rel="stylesheet" href="file:///Users/mcuadros/gopkg.css" />
+		<style>
+			* {
+				text-decoration: none;
+				color: black;
+				font-family: Raleway;
+			}
+
+			body {
+				width: 60%;
+				margin: auto;
+				padding-top: 10%;
+			}
+
+			pre {
+				padding: 10px;
+				font-family: "Courier New", Courier, monospace;
+				border: 1px solid black;
+				text-align: center;
+			}
+
+			ul.mayor {
+				padding: auto;
+			}
+			
+			ul.mayor > li {
+				padding: 10px;
+				float: left;
+				display: block;
+			}
+
+			ul.minor > li {
+				margin-left: 40px;
+
+			}
+			.mayor .minor { text-decoration: none; }
+			.mayor .best { font-weight: bold; }
+
+		</style>
 	</head>
 	<body>
 		<pre>go get -u {{.Package.Name}}</pre>
-		<ul>
+		<ul class="mayor">
 			{{range $mayor, $v := .Versions.Mayor}}
 			<li>
-				<span>{{$mayor}} -> {{$v.Name}}</span>
-				<ul>
+				{{$mayor}} ->
+				<ul class="minor">
 				{{range $parent.Versions.Match $mayor}}
-				<li><a href="http://{{$package.Name.Base}}@{{.Name}}">{{.Name}}</a></li>
+				<li><a 
+					href="https://{{$package.Name.Change .}}"
+					class="{{if eq .Name $v.Name}}best{{else}}other{{end}}"
+				>{{.Name}}</a></li>
 				{{end}}
 				</ul>
 			</li>
