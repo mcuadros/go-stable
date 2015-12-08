@@ -9,6 +9,6 @@ RUN go get -v ./...
 RUN go install -v ./...
 
 VOLUME /certificates
-EXPOSE 80
+EXPOSE 443
 
-CMD ["gop.kg", "server", "--addr=:80", "--cert=/certificates/gop.kg.cert.pem", "--key=/certificates/gop.kg.key.pem"]
+CMD ["gop.kg", "server", "--addr=:443", "--cert=/certificates/gop.kg.cert.pem", "--key=/certificates/gop.kg.key.pem"]
