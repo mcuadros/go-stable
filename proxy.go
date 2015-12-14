@@ -61,7 +61,7 @@ func (p *Proxy) do(c *Context) error {
 	return p.handleError(c, err)
 }
 
-var gogetTemplate = `<html><head><meta name="go-import" content="%s git http://%#[1]s"></head><body></body></html>`
+var gogetTemplate = `<html><head><meta name="go-import" content="%s git https://%#[1]s"></head><body></body></html>`
 
 func (p *Proxy) defaultHandler(c *Context) error {
 	if c.Query("go-get") != "1" {
@@ -70,7 +70,6 @@ func (p *Proxy) defaultHandler(c *Context) error {
 
 	c.Header("Content-Type", "text/html")
 	_, err := fmt.Fprintf(c.Writer, gogetTemplate, c.Package.Name)
-
 	return err
 }
 

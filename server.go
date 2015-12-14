@@ -15,6 +15,8 @@ func NewServer() *Server {
 func (s *Server) Run(addr ...string) error {
 	s.setTemplates()
 	s.Use(ProxyMiddleware())
+	s.Any("/*default", func(c *gin.Context) {})
+
 	s.NoRoute(s.Public)
 
 	return s.Engine.Run(addr...)
@@ -23,6 +25,8 @@ func (s *Server) Run(addr ...string) error {
 func (s *Server) RunTLS(addr, certFile, keyFile string) error {
 	s.setTemplates()
 	s.Use(ProxyMiddleware())
+	s.Any("/*default", func(c *gin.Context) {})
+
 	s.NoRoute(s.Public)
 
 	return s.Engine.RunTLS(addr, certFile, keyFile)
