@@ -17,14 +17,14 @@ type SuiteCommon struct{}
 var _ = Suite(&SuiteCommon{})
 
 func (s *SuiteCommon) TestNewRepositoryFromRequestSubdomain(c *C) {
-	p := s.buildPackageFromRequest(c, "http://foo.gop.kg/qux!baz", nil)
+	p := s.buildPackageFromRequest(c, "http://foo.gop.kg/qux@baz", nil)
 	c.Assert(p.Name.Base(), Equals, "foo.gop.kg/qux")
 	c.Assert(p.Name.Version(), Equals, "baz")
 	c.Assert(p.Repository.CloneURL, Equals, "git://github.com/foo/qux.git")
 	c.Assert(p.Repository.Rev, Equals, "baz")
 
-	p = s.buildPackageFromRequest(c, "http://foo.gop.kg/qux!baz/info/refs?service=git-upload-pack", nil)
-	c.Assert(string(p.Name), Equals, "foo.gop.kg/qux!baz")
+	p = s.buildPackageFromRequest(c, "http://foo.gop.kg/qux@baz/info/refs?service=git-upload-pack", nil)
+	c.Assert(string(p.Name), Equals, "foo.gop.kg/qux@baz")
 	c.Assert(p.Repository.CloneURL, Equals, "git://github.com/foo/qux.git")
 	c.Assert(p.Repository.Rev, Equals, "baz")
 }
@@ -33,22 +33,22 @@ func (s *SuiteCommon) TestNewRepositoryFromRequestPath(c *C) {
 	UrlMode = Path
 	defer func() { UrlMode = Subdomain }()
 
-	p := s.buildPackageFromRequest(c, "http://gop.kg/foo/qux!master", nil)
-	c.Assert(string(p.Name), Equals, "gop.kg/foo/qux!master")
+	p := s.buildPackageFromRequest(c, "http://gop.kg/foo/qux@master", nil)
+	c.Assert(string(p.Name), Equals, "gop.kg/foo/qux@master")
 	c.Assert(p.Repository.CloneURL, Equals, "git://github.com/foo/qux.git")
 	c.Assert(p.Repository.Rev, Equals, "master")
 
-	p = s.buildPackageFromRequest(c, "http://gop.kg/foo/qux!master", nil)
-	c.Assert(string(p.Name), Equals, "gop.kg/foo/qux!master")
+	p = s.buildPackageFromRequest(c, "http://gop.kg/foo/qux@master", nil)
+	c.Assert(string(p.Name), Equals, "gop.kg/foo/qux@master")
 	c.Assert(p.Repository.CloneURL, Equals, "git://github.com/foo/qux.git")
 	c.Assert(p.Repository.Rev, Equals, "master")
 
-	p = s.buildPackageFromRequest(c, "http://gop.kg/foo/qux!master/bar", nil)
-	c.Assert(string(p.Name), Equals, "gop.kg/foo/qux!master/bar")
+	p = s.buildPackageFromRequest(c, "http://gop.kg/foo/qux@master/bar", nil)
+	c.Assert(string(p.Name), Equals, "gop.kg/foo/qux@master/bar")
 	c.Assert(p.Repository.CloneURL, Equals, "git://github.com/foo/qux.git")
 	c.Assert(p.Repository.Rev, Equals, "master")
 
-	s.buildPackageFromRequest(c, "http://gop.kg/foo/qux/bar!master", ErrInvalidRequest)
+	s.buildPackageFromRequest(c, "http://gop.kg/foo/qux/bar@master", ErrInvalidRequest)
 }
 
 func (s *SuiteCommon) buildPackageFromRequest(c *C, reqURL string, expectedErr error) *Package {

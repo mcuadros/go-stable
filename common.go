@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	VersionSeparator  = "!"
+	VersionSeparator  = "@"
 	UrlMode           = Path
 	ErrInvalidRequest = errors.New("invalid request")
 

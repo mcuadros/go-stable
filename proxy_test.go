@@ -15,7 +15,7 @@ type ProxySuite struct{}
 var _ = Suite(&ProxySuite{})
 
 func (s *ProxySuite) TestDefaultHandlerGoGet(c *C) {
-	ctx := s.newMockContext("GET", "https://foo.gop.kg/bar!baz?go-get=1")
+	ctx := s.newMockContext("GET", "https://foo.gop.kg/bar@baz?go-get=1")
 
 	p := &Proxy{}
 
