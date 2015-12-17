@@ -40,7 +40,12 @@ func (p PackageName) Version() string {
 		return ""
 	}
 
-	return parts[1]
+	parts = strings.Split(parts[1], "/")
+	return parts[0]
+}
+
+func (p PackageName) Root() string {
+	return p.Base() + VersionSeparator + p.Version()
 }
 
 func (p PackageName) Change(v *Version) PackageName {

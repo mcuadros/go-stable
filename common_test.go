@@ -80,6 +80,21 @@ func (s *SuiteCommon) TestNewVersionAnnotatedTag(c *C) {
 	c.Assert(v.Type, Equals, AnnotatedTag)
 }
 
+func (s *SuiteCommon) TestPackageNameBase(c *C) {
+	n := PackageName("gop.kg/foo/qux@master/bar")
+	c.Assert(n.Base(), Equals, "gop.kg/foo/qux")
+}
+
+func (s *SuiteCommon) TestPackageNameVersion(c *C) {
+	n := PackageName("gop.kg/foo/qux@master/bar")
+	c.Assert(n.Version(), Equals, "master")
+}
+
+func (s *SuiteCommon) TestPackageNameRoot(c *C) {
+	n := PackageName("gop.kg/foo/qux@master/bar")
+	c.Assert(n.Root(), Equals, "gop.kg/foo/qux@master")
+}
+
 func (s *SuiteCommon) TestNewVersions(c *C) {
 	info := &common.GitUploadPackInfo{}
 	info.Refs = map[string]core.Hash{

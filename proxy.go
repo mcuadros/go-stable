@@ -69,7 +69,7 @@ func (p *Proxy) defaultHandler(c *Context) error {
 	}
 
 	c.Header("Content-Type", "text/html")
-	_, err := fmt.Fprintf(c.Writer, gogetTemplate, c.Package.Name)
+	_, err := fmt.Fprintf(c.Writer, gogetTemplate, c.Package.Name.Root())
 	return err
 }
 
