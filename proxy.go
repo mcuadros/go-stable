@@ -6,9 +6,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/src-d/go-git.v2/clients/common"
-	"gopkg.in/src-d/go-git.v2/clients/http"
-	"gopkg.in/src-d/go-git.v2/core"
+	"gopkg.in/src-d/go-git.v4/clients/common"
+	"gopkg.in/src-d/go-git.v4/clients/http"
+	"gopkg.in/src-d/go-git.v4/core"
+	"gopkg.in/src-d/go-git.v4/formats/packp/pktline"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
 const defaultBranch = "refs/heads/master"
@@ -75,16 +77,20 @@ func (p *Proxy) defaultHandler(c *Context) error {
 
 func (p *Proxy) doUploadPackInfoResponse(c *Context) error {
 	fetcher := NewFetcher(c.Package, p.getAuth(c))
-	v, err := p.getVersion(fetcher, c.Package)
+	ref, err := p.getVersion(fetcher, c.Package)
 	if err != nil {
 		return err
 	}
 
-	info := common.NewGitUploadPackInfo()
-	info.Head = v.Hash
-	info.Refs = map[string]core.Hash{defaultBranch: v.Hash}
-	info.Capabilities.Set("symref", "HEAD:"+defaultBranch)
+	refs := make(memory.ReferenceStorage)
+	refs.SetReference(core.NewSymbolicReference(core.HEAD, ref.Name()))
+	refs.SetReference(ref)
 
+	info := common.NewGitUploadPackInfo()
+	info.Refs = refs
+	info.Capabilities.Set("symref", "HEAD:"+ref.Name().String())
+
+	fmt.Println(info)
 	c.Header("Content-Type", "application/x-git-upload-pack-advertisement")
 	c.String(200, info.String())
 
@@ -93,7 +99,7 @@ func (p *Proxy) doUploadPackInfoResponse(c *Context) error {
 
 func (p *Proxy) doUploadPackResponse(c *Context) error {
 	fetcher := NewFetcher(c.Package, p.getAuth(c))
-	v, err := p.getVersion(fetcher, c.Package)
+	ref, err := p.getVersion(fetcher, c.Package)
 	if err != nil {
 		return err
 	}
@@ -101,24 +107,28 @@ func (p *Proxy) doUploadPackResponse(c *Context) error {
 	c.Header("Content-Type", "application/x-git-upload-pack-result")
 	c.AbortWithStatus(200)
 
-	if _, err := c.Writer.WriteString("0008NAK\n"); err != nil {
+	pkt := pktline.NewEncoder(c.Writer)
+	if err := pkt.EncodeString(
+		//fmt.Sprintf("shallow %s\n", ref.Hash()),
+		"NAK\n",
+	); err != nil {
 		return err
 	}
 
-	if _, err := fetcher.Fetch(c.Writer, v.Hash); err != nil {
+	if _, err := fetcher.Fetch(c.Writer, ref); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *Proxy) getVersion(f *Fetcher, pkg *Package) (*Version, error) {
+func (p *Proxy) getVersion(f *Fetcher, pkg *Package) (*core.Reference, error) {
 	versions, err := f.Versions()
 	if err != nil {
 		return nil, err
 	}
 
-	v := versions.BestMatch(pkg.Repository.Rev)
+	v := versions.BestMatch(pkg.Condition)
 	if v == nil {
 		return nil, ErrVersionNotFound
 	}
@@ -133,7 +143,7 @@ func (p *Proxy) handleError(c *Context, err error) error {
 
 	c.Abort()
 	if err, ok := err.(*core.PermanentError); ok {
-		if err.Err == common.NotFoundErr {
+		if err.Err == common.ErrRepositoryNotFound {
 			return p.handleNotFoundError(c, err)
 		}
 	}

@@ -11,5 +11,6 @@ type ServerCommand struct {
 
 func (c *ServerCommand) Execute(args []string) error {
 	c.s = gopkg.NewServer()
+	return c.s.Run(c.Addr)
 	return c.s.RunTLS(c.Addr, c.CertFile, c.KeyFile)
 }

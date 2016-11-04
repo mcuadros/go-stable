@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/mcuadros/go-version"
-	"gopkg.in/sourcegraph/go-vcsurl.v1"
-	"gopkg.in/src-d/go-git.v2/clients/common"
-	"gopkg.in/src-d/go-git.v2/core"
+	"gopkg.in/src-d/go-git.v4/clients/common"
+	"gopkg.in/src-d/go-git.v4/core"
 )
 
 type urlMode int
@@ -48,8 +47,8 @@ func (p PackageName) Root() string {
 	return p.Base() + VersionSeparator + p.Version()
 }
 
-func (p PackageName) Change(v *Version) PackageName {
-	return PackageName(p.Base() + VersionSeparator + v.Name)
+func (p PackageName) Change(v *core.Reference) PackageName {
+	return PackageName(p.Base() + VersionSeparator + v.Name().Short())
 }
 
 func splitByVersionSeparator(n PackageName) []string {
@@ -60,18 +59,15 @@ func splitByVersionSeparator(n PackageName) []string {
 // Package represent a golang package
 type Package struct {
 	Name       PackageName
-	Repository vcsurl.RepoInfo
+	Repository common.Endpoint
+	Condition  string
 	Versions   Versions
 }
 
 // NewPackage returns a new instance of Package
 func NewPackage(p PackageName, url string) (*Package, error) {
-	info, err := vcsurl.Parse(url)
-	if err != nil {
-		return nil, err
-	}
 
-	return &Package{Name: p, Repository: *info}, nil
+	return nil, nil
 }
 
 // NewPackageFromRequest returns a new instance of Package using the data from
@@ -79,15 +75,28 @@ func NewPackage(p PackageName, url string) (*Package, error) {
 func NewPackageFromRequest(r *http.Request) (*Package, error) {
 	username := getUsername(r)
 	repository, revision := getRepository(r)
+	name := getPackageName(r)
+
+	url, err := getURL(username, repository)
+	if err != nil {
+		return nil, err
+	}
 
 	if username == "" || repository == "" || revision == "" {
 		return nil, ErrInvalidRequest
 	}
 
-	return NewPackage(
-		getPackageName(r),
-		fmt.Sprintf("https://github.com/%s/%s#%s", username, repository, revision),
-	)
+	return &Package{
+		Name:       name,
+		Repository: url,
+		Condition:  revision,
+	}, nil
+}
+
+func getURL(username, repository string) (endpoint common.Endpoint, err error) {
+	return common.NewEndpoint(fmt.Sprintf(
+		"https://github.com/%s/%s", username, repository,
+	))
 }
 
 func getUsername(r *http.Request) string {
@@ -162,79 +171,35 @@ func getPath(r *http.Request) string {
 	return path
 }
 
-type VersionType int
-
-const (
-	Head         VersionType = 1
-	Tag          VersionType = 2
-	AnnotatedTag VersionType = 3
-)
-
-type Version struct {
-	Name string
-	Ref  string
-	Hash core.Hash
-	Type VersionType
-}
-
-func NewVersion(ref string, h core.Hash) *Version {
-	v := &Version{Ref: ref, Hash: h}
-
-	switch {
-	case strings.HasPrefix(ref, "refs/tags"):
-		v.Type = Tag
-	case strings.HasPrefix(ref, "refs/heads"):
-		v.Type = Head
-	default:
-		return nil
-	}
-
-	v.Name = ref[strings.LastIndex(ref, "/")+1:]
-	if strings.HasSuffix(v.Name, "^{}") {
-		v.Type = AnnotatedTag
-		v.Name = v.Name[:len(v.Name)-3]
-	}
-
-	return v
-}
-
-type Versions map[string]*Version
+type Versions map[string]*core.Reference
 
 func NewVersions(info *common.GitUploadPackInfo) Versions {
 	versions := make(Versions, 0)
-	aVersions := make(Versions, 0)
-	for ref, hash := range info.Refs {
-		v := NewVersion(ref, hash)
-		if v == nil {
+	for _, ref := range info.Refs {
+		if !ref.IsTag() && !ref.IsBranch() {
 			continue
 		}
 
-		if v.Type == AnnotatedTag {
-			aVersions[v.Name] = v
-		} else {
-			versions[v.Name] = v
-		}
-	}
-
-	for _, v := range aVersions {
-		versions[v.Name] = v
+		versions[ref.Name().Short()] = ref
 	}
 
 	return versions
 }
 
-func (v Versions) Match(needed string) []*Version {
+func (v Versions) Match(needed string) []*core.Reference {
 	c := newConstrain(needed)
 
 	var names []string
-	for _, ver := range v {
-		if c.Match(version.Normalize(ver.Name)) {
-			names = append(names, ver.Name)
+	for _, ref := range v {
+		name := ref.Name().Short()
+		fmt.Println("name, name", name)
+		if c.Match(version.Normalize(name)) {
+			names = append(names, name)
 		}
 	}
 
 	version.Sort(names)
-	var matched []*Version
+	var matched []*core.Reference
 	for n := len(names) - 1; n >= 0; n-- {
 		matched = append(matched, v[names[n]])
 	}
@@ -242,7 +207,7 @@ func (v Versions) Match(needed string) []*Version {
 	return matched
 }
 
-func (v Versions) BestMatch(needed string) *Version {
+func (v Versions) BestMatch(needed string) *core.Reference {
 	if version, ok := v[needed]; ok {
 		return version
 	}
@@ -255,8 +220,8 @@ func (v Versions) BestMatch(needed string) *Version {
 	return matched[0]
 }
 
-func (v Versions) Mayor() map[string]*Version {
-	output := make(map[string]*Version, 0)
+func (v Versions) Mayor() map[string]*core.Reference {
+	output := make(map[string]*core.Reference, 0)
 	for i := 0; i < 100; i++ {
 		mayor := fmt.Sprintf("v%d", i)
 		if m := v.BestMatch(mayor); m != nil {

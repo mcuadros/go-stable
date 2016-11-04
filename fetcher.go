@@ -4,40 +4,47 @@ import (
 	"io"
 
 	"github.com/mxk/go-flowrate/flowrate"
-	"gopkg.in/src-d/go-git.v2"
-	"gopkg.in/src-d/go-git.v2/clients/common"
-	"gopkg.in/src-d/go-git.v2/core"
+	"gopkg.in/src-d/go-git.v4/clients/common"
+	"gopkg.in/src-d/go-git.v4/clients/http"
+	"gopkg.in/src-d/go-git.v4/core"
 )
 
 type Fetcher struct {
-	isConnected bool
-	pkg         *Package
-	remote      *git.Remote
-	auth        common.AuthMethod
+	service common.GitUploadPackService
+	pkg     *Package
+	auth    common.AuthMethod
 }
 
 func NewFetcher(p *Package, auth common.AuthMethod) *Fetcher {
-	return &Fetcher{pkg: p, auth: auth}
+	service := http.NewGitUploadPackService(p.Repository)
+	service.SetAuth(auth)
+
+	return &Fetcher{pkg: p, auth: auth, service: service}
 }
 
 func (f *Fetcher) Versions() (Versions, error) {
-	if err := f.connect(); err != nil {
+	if err := f.service.Connect(); err != nil {
 		return nil, err
 	}
 
-	info := f.remote.Info()
+	info, err := f.service.Info()
+	if err != nil {
+		return nil, err
+	}
+
 	return NewVersions(info), nil
 }
 
-func (f *Fetcher) Fetch(w io.Writer, ref core.Hash) (*flowrate.Status, error) {
-	if err := f.connect(); err != nil {
+func (f *Fetcher) Fetch(w io.Writer, ref *core.Reference) (*flowrate.Status, error) {
+	if err := f.service.Connect(); err != nil {
 		return nil, err
 	}
 
 	req := &common.GitUploadPackRequest{}
-	req.Want(ref)
+	req.Want(ref.Hash())
+	//req.Depth = 1
 
-	r, err := f.remote.Fetch(req)
+	r, err := f.service.Fetch(req)
 	if err != nil {
 		return nil, err
 	}
@@ -48,24 +55,4 @@ func (f *Fetcher) Fetch(w io.Writer, ref core.Hash) (*flowrate.Status, error) {
 
 	status := flow.Status()
 	return &status, err
-}
-
-func (f *Fetcher) connect() error {
-	if f.isConnected {
-		return nil
-	}
-
-	defer func() { f.isConnected = true }()
-
-	var err error
-	f.remote, err = git.NewAuthenticatedRemote(f.pkg.Repository.CloneURL, f.auth)
-	if err != nil {
-		return err
-	}
-
-	if err := f.remote.Connect(); err != nil {
-		return err
-	}
-
-	return nil
 }
