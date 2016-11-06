@@ -3,7 +3,6 @@ package gopkg
 import (
 	"io"
 
-	"github.com/mxk/go-flowrate/flowrate"
 	"gopkg.in/src-d/go-git.v4/clients/common"
 	"gopkg.in/src-d/go-git.v4/clients/http"
 	"gopkg.in/src-d/go-git.v4/core"
@@ -32,12 +31,12 @@ func (f *Fetcher) Versions() (Versions, error) {
 		return nil, err
 	}
 
-	return NewVersions(info), nil
+	return NewVersions(info.Refs), nil
 }
 
-func (f *Fetcher) Fetch(w io.Writer, ref *core.Reference) (*flowrate.Status, error) {
+func (f *Fetcher) Fetch(w io.Writer, ref *core.Reference) (written int64, err error) {
 	if err := f.service.Connect(); err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	req := &common.GitUploadPackRequest{}
@@ -45,13 +44,8 @@ func (f *Fetcher) Fetch(w io.Writer, ref *core.Reference) (*flowrate.Status, err
 
 	r, err := f.service.Fetch(req)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	flow := flowrate.NewReader(r, -1)
-	defer flow.Close()
-
-	_, err = io.Copy(w, flow)
-	status := flow.Status()
-	return &status, err
+	return io.Copy(w, r)
 }

@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"time"
+
 	"github.com/mcuadros/gop.kg"
 )
 
@@ -13,9 +14,10 @@ type ServerCommand struct {
 }
 
 func (c *ServerCommand) Execute(args []string) error {
-	gin.SetMode(gin.ReleaseMode)
+	c.s = gopkg.NewDefaultServer("example.com")
+	c.s.Addr = c.Addr
+	c.s.WriteTimeout = 15 * time.Second
+	c.s.ReadTimeout = 15 * time.Second
 
-	c.s = gopkg.NewServer()
-	//return c.s.Run(c.Addr)
-	return c.s.RunTLS(c.Addr, c.CertFile, c.KeyFile)
+	return c.s.ListenAndServeTLS(c.CertFile, c.KeyFile)
 }

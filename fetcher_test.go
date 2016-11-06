@@ -14,7 +14,7 @@ var _ = Suite(&FetcherSuite{})
 
 func (s *FetcherSuite) TestVersions(c *C) {
 	pkg := &Package{}
-	pkg.Repository, _ = common.NewEndpoint("https://github.com/tyba/git-fixture")
+	pkg.Repository, _ = common.NewEndpoint("https://github.com/git-fixtures/basic")
 
 	f := NewFetcher(pkg, nil)
 	versions, err := f.Versions()
@@ -24,16 +24,15 @@ func (s *FetcherSuite) TestVersions(c *C) {
 
 func (s *FetcherSuite) TestFetch(c *C) {
 	pkg := &Package{}
-	pkg.Repository, _ = common.NewEndpoint("https://github.com/tyba/git-fixture")
+	pkg.Repository, _ = common.NewEndpoint("https://github.com/git-fixtures/basic")
 
 	f := NewFetcher(pkg, nil)
 
 	ref := core.NewReferenceFromStrings("foo", "6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
 
 	buf := bytes.NewBuffer(nil)
-	status, err := f.Fetch(buf, ref)
+	n, err := f.Fetch(buf, ref)
 	c.Assert(err, IsNil)
-	c.Assert(status.Active, Equals, false)
-	c.Assert(status.Bytes, Equals, int64(85374))
+	c.Assert(n, Equals, int64(85374))
 	c.Assert(buf.Len(), Equals, 85374)
 }
