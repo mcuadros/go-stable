@@ -37,6 +37,10 @@ func NewServer(base, host string) *Server {
 	}
 }
 
+func (s *Server) ListenAndServe() error {
+	panic("ListenAndServer, is not supported try ListenAndServeTLS")
+}
+
 func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	s.buildRouter()
 	return s.Server.ListenAndServeTLS(certFile, keyFile)
