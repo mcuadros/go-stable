@@ -16,10 +16,10 @@ type Fetcher struct {
 }
 
 func NewFetcher(p *Package, auth common.AuthMethod) *Fetcher {
-	service := http.NewGitUploadPackService(p.Repository)
-	service.SetAuth(auth)
+	s := http.NewGitUploadPackService(p.Repository)
+	s.SetAuth(auth)
 
-	return &Fetcher{pkg: p, auth: auth, service: service}
+	return &Fetcher{pkg: p, service: s}
 }
 
 func (f *Fetcher) Versions() (Versions, error) {
@@ -42,7 +42,6 @@ func (f *Fetcher) Fetch(w io.Writer, ref *core.Reference) (*flowrate.Status, err
 
 	req := &common.GitUploadPackRequest{}
 	req.Want(ref.Hash())
-	//req.Depth = 1
 
 	r, err := f.service.Fetch(req)
 	if err != nil {
@@ -50,9 +49,9 @@ func (f *Fetcher) Fetch(w io.Writer, ref *core.Reference) (*flowrate.Status, err
 	}
 
 	flow := flowrate.NewReader(r, -1)
-	_, err = io.Copy(w, flow)
-	flow.Close()
+	defer flow.Close()
 
+	_, err = io.Copy(w, flow)
 	status := flow.Status()
 	return &status, err
 }

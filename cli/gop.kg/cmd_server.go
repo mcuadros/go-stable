@@ -1,6 +1,9 @@
 package main
 
-import "github.com/mcuadros/gop.kg"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/mcuadros/gop.kg"
+)
 
 type ServerCommand struct {
 	Addr     string `long:"addr" default:":8080" description:"http server addr"`
@@ -10,7 +13,9 @@ type ServerCommand struct {
 }
 
 func (c *ServerCommand) Execute(args []string) error {
+	gin.SetMode(gin.ReleaseMode)
+
 	c.s = gopkg.NewServer()
-	return c.s.Run(c.Addr)
+	//return c.s.Run(c.Addr)
 	return c.s.RunTLS(c.Addr, c.CertFile, c.KeyFile)
 }
