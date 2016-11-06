@@ -12,6 +12,15 @@ var _ = Suite(&ProxySuite{})
 
 func (s *ProxySuite) TestDoMetaImportResponse(c *C) {
 	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases@v1?go-get=1", nil)
+	s.doTestDoMetaImportResponse(c, r)
+}
+
+func (s *ProxySuite) TestDoMetaImportResponseSubpackage(c *C) {
+	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases/subpackage@v1?go-get=1", nil)
+	s.doTestDoMetaImportResponse(c, r)
+}
+
+func (s *ProxySuite) doTestDoMetaImportResponse(c *C, r *http.Request) {
 	w := httptest.NewRecorder()
 
 	server := NewDefaultServer("foo.bar")
@@ -21,6 +30,8 @@ func (s *ProxySuite) TestDoMetaImportResponse(c *C) {
 	response := w.Result()
 	body, err := ioutil.ReadAll(response.Body)
 	c.Assert(err, IsNil)
+	c.Assert(response.StatusCode, Equals, 200)
+
 	c.Assert(string(body), Equals, ""+
 		"<html>\n"+
 		"\t\t<head>\n"+
@@ -30,7 +41,6 @@ func (s *ProxySuite) TestDoMetaImportResponse(c *C) {
 		"\t</html>",
 	)
 
-	c.Assert(response.StatusCode, Equals, 200)
 	c.Assert(response.Header.Get("Content-Type"), Equals, "text/html")
 }
 

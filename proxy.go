@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"path"
 
+	"strings"
+
 	"github.com/gorilla/mux"
 	"gopkg.in/src-d/go-git.v4/clients/common"
 	githttp "gopkg.in/src-d/go-git.v4/clients/http"
@@ -90,7 +92,7 @@ func (s *Server) buildPackage(r *http.Request) *Package {
 	name, err := s.r.Get("base").URL(
 		"server", server,
 		"org", organization,
-		"repository", repository,
+		"repository", removeSubpackage(repository),
 		"version", params[ConstraintKey],
 	)
 
@@ -172,6 +174,11 @@ func getAuth(r *http.Request) *githttp.BasicAuth {
 	username, password, _ := r.BasicAuth()
 
 	return githttp.NewBasicAuth(username, password)
+}
+
+func removeSubpackage(pkg string) string {
+	p := strings.Split(pkg, "/")
+	return p[0]
 }
 
 var metaImportTemplate = "" +
