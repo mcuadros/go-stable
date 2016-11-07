@@ -1,4 +1,4 @@
-package gopkg
+package stable
 
 import . "gopkg.in/check.v1"
 import "net/http"

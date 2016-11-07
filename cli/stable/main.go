@@ -6,22 +6,13 @@ import (
 	"runtime"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/op/go-logging"
 )
 
 var (
 	commit  string
 	version string
 	build   string
-	logger  *logging.Logger
 )
-
-const logFormat = "%{color}%{level}%{color:reset} %{message}"
-
-func init() {
-	logging.SetFormatter(logging.MustStringFormatter(logFormat))
-	logger = logging.MustGetLogger("fetcher")
-}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())

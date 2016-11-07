@@ -1,9 +1,10 @@
-package gopkg
+package stable
 
 import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"path"
 
 	"strings"
@@ -86,7 +87,7 @@ func (s *Server) buildGitUploadPackInfo(ref *core.Reference) *common.GitUploadPa
 func (s *Server) buildPackage(r *http.Request) *Package {
 	params := mux.Vars(r)
 	server := getOrDefault(params, ServerKey, s.Default.Server)
-	organization := getOrDefault(params, OrganizationKey, s.Default.Organazation)
+	organization := getOrDefault(params, OrganizationKey, s.Default.Organization)
 	repository := getOrDefault(params, RepositoryKey, s.Default.Repository)
 
 	name, err := s.r.Get("base").URL(
@@ -144,12 +145,17 @@ func (s *Server) doUploadPackResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleError(w http.ResponseWriter, r *http.Request, err error) {
-	if err != common.ErrAuthorizationRequired {
-		w.WriteHeader(http.StatusInternalServerError)
-		panic(err)
+	switch err {
+	case common.ErrAuthorizationRequired:
+		s.requireAuth(w, r)
+		return
+	case ErrVersionNotFound:
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
-	s.requireAuth(w, r)
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(os.Stderr, "error handling request: %s\n", err.Error())
 }
 
 func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request) {

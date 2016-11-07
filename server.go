@@ -1,4 +1,4 @@
-package gopkg
+package stable
 
 import (
 	"net/http"
@@ -17,9 +17,8 @@ type Server struct {
 	Host    string
 	Default struct {
 		Server       string
-		Organazation string
+		Organization string
 		Repository   string
-		Constrain    string
 	}
 }
 
@@ -31,10 +30,13 @@ func NewDefaultServer(host string) *Server {
 }
 
 func NewServer(base, host string) *Server {
-	return &Server{
+	s := &Server{
 		Base: base,
 		Host: host,
 	}
+
+	s.buildRouter()
+	return s
 }
 
 func (s *Server) ListenAndServe() error {
@@ -42,7 +44,6 @@ func (s *Server) ListenAndServe() error {
 }
 
 func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
-	s.buildRouter()
 	return s.Server.ListenAndServeTLS(certFile, keyFile)
 }
 
