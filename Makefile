@@ -1,6 +1,6 @@
 # Package configuration
 PROJECT = gopkg
-COMMANDS = cli/gop.kg
+COMMANDS = cli/stable
 DEPENDENCIES = golang.org/x/tools/cmd/cover
 PACKAGES = .
 
