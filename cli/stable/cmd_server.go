@@ -4,10 +4,10 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/dkumor/acmewrapper"
 	"github.com/mcuadros/go-stable"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/dkumor/acmewrapper"
 	"github.com/urfave/negroni"
 )
 

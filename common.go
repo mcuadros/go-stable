@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/mcuadros/go-version"
-	"gopkg.in/src-d/go-git.v4/clients/common"
-	"gopkg.in/src-d/go-git.v4/core"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/client/common"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
@@ -17,7 +17,7 @@ type Package struct {
 	Versions   Versions
 }
 
-type Versions map[string]*core.Reference
+type Versions map[string]*plumbing.Reference
 
 func NewVersions(refs memory.ReferenceStorage) Versions {
 	versions := make(Versions, 0)
@@ -32,7 +32,7 @@ func NewVersions(refs memory.ReferenceStorage) Versions {
 	return versions
 }
 
-func (v Versions) Match(needed string) []*core.Reference {
+func (v Versions) Match(needed string) []*plumbing.Reference {
 	c := newConstrain(needed)
 
 	var names []string
@@ -44,7 +44,7 @@ func (v Versions) Match(needed string) []*core.Reference {
 	}
 
 	version.Sort(names)
-	var matched []*core.Reference
+	var matched []*plumbing.Reference
 	for n := len(names) - 1; n >= 0; n-- {
 		matched = append(matched, v[names[n]])
 	}
@@ -52,7 +52,7 @@ func (v Versions) Match(needed string) []*core.Reference {
 	return matched
 }
 
-func (v Versions) BestMatch(needed string) *core.Reference {
+func (v Versions) BestMatch(needed string) *plumbing.Reference {
 	if version, ok := v[needed]; ok {
 		return version
 	}
@@ -65,8 +65,8 @@ func (v Versions) BestMatch(needed string) *core.Reference {
 	return matched[0]
 }
 
-func (v Versions) Mayor() map[string]*core.Reference {
-	output := make(map[string]*core.Reference, 0)
+func (v Versions) Mayor() map[string]*plumbing.Reference {
+	output := make(map[string]*plumbing.Reference, 0)
 	for i := 0; i < 100; i++ {
 		mayor := fmt.Sprintf("v%d", i)
 		if m := v.BestMatch(mayor); m != nil {

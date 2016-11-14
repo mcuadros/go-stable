@@ -1,11 +1,11 @@
-package stable 
+package stable
 
 import (
 	"io"
 
-	"gopkg.in/src-d/go-git.v4/clients/common"
-	"gopkg.in/src-d/go-git.v4/clients/http"
-	"gopkg.in/src-d/go-git.v4/core"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/client/common"
+	"gopkg.in/src-d/go-git.v4/plumbing/client/http"
 )
 
 type Fetcher struct {
@@ -34,7 +34,7 @@ func (f *Fetcher) Versions() (Versions, error) {
 	return NewVersions(info.Refs), nil
 }
 
-func (f *Fetcher) Fetch(w io.Writer, ref *core.Reference) (written int64, err error) {
+func (f *Fetcher) Fetch(w io.Writer, ref *plumbing.Reference) (written int64, err error) {
 	if err := f.service.Connect(); err != nil {
 		return 0, err
 	}

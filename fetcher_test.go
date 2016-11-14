@@ -4,8 +4,8 @@ import (
 	"bytes"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/src-d/go-git.v4/clients/common"
-	"gopkg.in/src-d/go-git.v4/core"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/client/common"
 )
 
 type FetcherSuite struct{}
@@ -28,7 +28,7 @@ func (s *FetcherSuite) TestFetch(c *C) {
 
 	f := NewFetcher(pkg, nil)
 
-	ref := core.NewReferenceFromStrings("foo", "6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
+	ref := plumbing.NewReferenceFromStrings("foo", "6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
 
 	buf := bytes.NewBuffer(nil)
 	n, err := f.Fetch(buf, ref)

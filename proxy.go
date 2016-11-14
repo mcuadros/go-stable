@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"gopkg.in/src-d/go-git.v4/clients/common"
-	githttp "gopkg.in/src-d/go-git.v4/clients/http"
-	"gopkg.in/src-d/go-git.v4/core"
-	"gopkg.in/src-d/go-git.v4/formats/packp/pktline"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/client/common"
+	githttp "gopkg.in/src-d/go-git.v4/plumbing/client/http"
+	"gopkg.in/src-d/go-git.v4/plumbing/format/packp/pktline"
 )
 
 var (
@@ -49,7 +49,7 @@ func (s *Server) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request
 	w.Write(info.Bytes())
 }
 
-func (s *Server) getVersion(f *Fetcher, pkg *Package) (*core.Reference, error) {
+func (s *Server) getVersion(f *Fetcher, pkg *Package) (*plumbing.Reference, error) {
 	versions, err := f.Versions()
 	if err != nil {
 		return nil, err
@@ -65,20 +65,20 @@ func (s *Server) getVersion(f *Fetcher, pkg *Package) (*core.Reference, error) {
 
 // we mutate the tag into a branch to avoid detached branches and allow to the
 // user now the current tag selected
-func (s *Server) mutateTagToBranch(ref *core.Reference) *core.Reference {
+func (s *Server) mutateTagToBranch(ref *plumbing.Reference) *plumbing.Reference {
 	if ref.IsBranch() {
 		return ref
 	}
 
-	branch := core.ReferenceName("refs/heads/" + ref.Name().Short())
-	return core.NewHashReference(branch, ref.Hash())
+	branch := plumbing.ReferenceName("refs/heads/" + ref.Name().Short())
+	return plumbing.NewHashReference(branch, ref.Hash())
 
 }
 
-func (s *Server) buildGitUploadPackInfo(ref *core.Reference) *common.GitUploadPackInfo {
+func (s *Server) buildGitUploadPackInfo(ref *plumbing.Reference) *common.GitUploadPackInfo {
 	info := common.NewGitUploadPackInfo()
 	info.Refs.SetReference(ref)
-	info.Refs.SetReference(core.NewSymbolicReference(core.HEAD, ref.Name()))
+	info.Refs.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, ref.Name()))
 	info.Capabilities.Set("symref", "HEAD:"+ref.Name().String())
 
 	return info
