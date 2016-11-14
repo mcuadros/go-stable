@@ -1,8 +1,9 @@
 # Package configuration
-PROJECT = gopkg
+PROJECT = go-stable
 COMMANDS = cli/stable
 DEPENDENCIES = golang.org/x/tools/cmd/cover
 PACKAGES = .
+ORGANIZATION = mcuadros
 
 # Environment
 BASE_PATH := $(shell pwd)
@@ -28,6 +29,9 @@ GHRELEASE = github-release
 # Coverage
 COVERAGE_REPORT = coverage.txt
 COVERAGE_MODE = atomic
+
+# Docker
+DOCKERCMD = docker
 
 ifneq ($(origin TRAVIS_TAG), undefined)
 	BRANCH := $(TRAVIS_TAG)
@@ -68,6 +72,14 @@ packages: dependencies
 			cd  $(BUILD_PATH) && tar -cvzf $(BUILD_PATH)/$(PROJECT)_$${os}_$${arch}.tar.gz $(PROJECT)_$${os}_$${arch}/; \
 		done; \
 	done;
+
+push:
+	for cmd in $(COMMANDS); do \
+		cd $${cmd} && CGO_ENABLED=0 $(GOCMD) build -ldflags "-X main.version=$(BRANCH) -X main.build=$(BUILD) -X main.commit=$(COMMIT)" .; \
+		cd $(BASE_PATH); \
+	done;
+	$(DOCKERCMD) build -t $(ORGANIZATION)/$(PROJECT):$(BRANCH) .
+	$(DOCKERCMD) push $(ORGANIZATION)/$(PROJECT):$(BRANCH)
 
 clean:
 	rm -rf $(BUILD_PATH)
