@@ -91,6 +91,43 @@ func (s *ProxySuite) TestDoUploadPackResponse(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(len(body), Equals, 1152)
 
-	c.Assert(response.StatusCode, Equals, 200)
+	c.Assert(response.StatusCode, Equals, http.StatusOK)
 	c.Assert(response.Header.Get("Content-Type"), Equals, "application/x-git-upload-pack-result")
+}
+
+func (s *ProxySuite) TestDoRootRedirect(c *C) {
+	r, _ := http.NewRequest("GET", "http://foo.bar/", nil)
+	w := httptest.NewRecorder()
+
+	server := NewDefaultServer("foo.bar")
+	server.Default.Server = "qux.baz"
+	server.Default.Organization = "foo"
+
+	server.buildRouter()
+	server.Handler.ServeHTTP(w, r)
+
+	response := w.Result()
+	body, err := ioutil.ReadAll(response.Body)
+	c.Assert(err, IsNil)
+	c.Assert(len(body), Equals, 42)
+
+	c.Assert(response.StatusCode, Equals, http.StatusFound)
+	c.Assert(response.Header.Get("Location"), Equals, "https://qux.baz/foo")
+}
+
+func (s *ProxySuite) TestDoPackageRedirect(c *C) {
+	r, _ := http.NewRequest("GET", "http://foo.bar/org/repository@v1", nil)
+	w := httptest.NewRecorder()
+
+	server := NewDefaultServer("foo.bar")
+	server.buildRouter()
+	server.Handler.ServeHTTP(w, r)
+
+	response := w.Result()
+	body, err := ioutil.ReadAll(response.Body)
+	c.Assert(err, IsNil)
+	c.Assert(len(body), Equals, 56)
+
+	c.Assert(response.StatusCode, Equals, http.StatusFound)
+	c.Assert(response.Header.Get("Location"), Equals, "https://github.com/org/repository")
 }

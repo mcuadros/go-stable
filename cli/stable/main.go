@@ -32,7 +32,6 @@ func main() {
 			)
 		}
 
-		fmt.Fprintf(os.Stdout, err.Error())
 		os.Exit(1)
 	}
 }

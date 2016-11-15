@@ -49,8 +49,9 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 
 func (s *Server) buildRouter() {
 	s.r = mux.NewRouter()
-	s.r.HandleFunc(s.BaseRoute, s.doMetaImportResponse).Methods("GET").Name("base")
+	s.r.HandleFunc("/", s.doRootRedirect).Methods("GET").Name("base")
 	s.r.HandleFunc(s.BaseRoute, s.doMetaImportResponse).Methods("GET").Queries("go-get", "1")
+	s.r.HandleFunc(s.BaseRoute, s.doPackageRedirect).Methods("GET").Name("base")
 	s.r.HandleFunc(path.Join(s.BaseRoute, "/info/refs"), s.doUploadPackInfoResponse).Methods("GET")
 	s.r.HandleFunc(path.Join(s.BaseRoute, "/git-upload-pack"), s.doUploadPackResponse).Methods("POST")
 

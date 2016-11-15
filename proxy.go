@@ -27,6 +27,22 @@ const (
 	ConstraintKey   = "version"
 )
 
+func (s *Server) doRootRedirect(w http.ResponseWriter, r *http.Request) {
+	// the redirect to the orgnization only happends with a default organization
+	// and a default server
+	if s.Default.Server == "" || s.Default.Organization == "" {
+		return
+	}
+
+	url := "https://" + path.Join(s.Default.Server, s.Default.Organization)
+	http.Redirect(w, r, url, http.StatusFound)
+}
+
+func (s *Server) doPackageRedirect(w http.ResponseWriter, r *http.Request) {
+	pkg := s.buildPackage(r)
+	http.Redirect(w, r, pkg.Repository.String(), http.StatusFound)
+}
+
 func (s *Server) doMetaImportResponse(w http.ResponseWriter, r *http.Request) {
 	pkg := s.buildPackage(r)
 	w.Header().Set("Content-Type", "text/html")
