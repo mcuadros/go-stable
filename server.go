@@ -13,9 +13,9 @@ type Server struct {
 	http.Server
 	r *mux.Router
 
-	Base    string
-	Host    string
-	Default struct {
+	BaseRoute string
+	Host      string
+	Default   struct {
 		Server       string
 		Organization string
 		Repository   string
@@ -31,8 +31,8 @@ func NewDefaultServer(host string) *Server {
 
 func NewServer(base, host string) *Server {
 	s := &Server{
-		Base: base,
-		Host: host,
+		BaseRoute: base,
+		Host:      host,
 	}
 
 	s.buildRouter()
@@ -49,10 +49,10 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 
 func (s *Server) buildRouter() {
 	s.r = mux.NewRouter()
-	s.r.HandleFunc(s.Base, s.doMetaImportResponse).Methods("GET").Name("base")
-	s.r.HandleFunc(s.Base, s.doMetaImportResponse).Methods("GET").Queries("go-get", "1")
-	s.r.HandleFunc(path.Join(s.Base, "/info/refs"), s.doUploadPackInfoResponse).Methods("GET")
-	s.r.HandleFunc(path.Join(s.Base, "/git-upload-pack"), s.doUploadPackResponse).Methods("POST")
+	s.r.HandleFunc(s.BaseRoute, s.doMetaImportResponse).Methods("GET").Name("base")
+	s.r.HandleFunc(s.BaseRoute, s.doMetaImportResponse).Methods("GET").Queries("go-get", "1")
+	s.r.HandleFunc(path.Join(s.BaseRoute, "/info/refs"), s.doUploadPackInfoResponse).Methods("GET")
+	s.r.HandleFunc(path.Join(s.BaseRoute, "/git-upload-pack"), s.doUploadPackResponse).Methods("POST")
 
 	s.Handler = s.r
 }

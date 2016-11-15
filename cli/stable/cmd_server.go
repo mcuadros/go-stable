@@ -16,6 +16,7 @@ type ServerCommand struct {
 	Server       string `long:"server" default:"github.com" description:"repository git server"`
 	Organization string `long:"organazation" description:"repository organization"`
 	Repository   string `long:"repository" default:"github.com" description:"repository name"`
+	BaseRoute    string `long:"base-route" description:"base gorilla/mux route"`
 
 	Addr     string `long:"addr" default:":8080" description:"http server addr"`
 	CertFile string `long:"cert" description:"TLS certificate file path."`
@@ -46,6 +47,7 @@ func (c *ServerCommand) buildServer() error {
 
 	c.s = stable.NewDefaultServer(c.Host)
 	c.s.Addr = c.Addr
+	c.s.BaseRoute = c.BaseRoute
 	c.s.Default.Server = c.Server
 	c.s.Default.Organization = c.Organization
 	c.s.Default.Repository = c.Repository
