@@ -116,7 +116,7 @@ func (c *ServerCommand) getLogFormat() (format logrus.Formatter, err error) {
 func (c *ServerCommand) listen() error {
 	acme, err := c.getACME()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	c.s.TLSConfig = acme.TLSConfig()
