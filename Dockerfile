@@ -7,4 +7,4 @@ RUN apk --update upgrade && \
     rm -rf /var/cache/apk/*
 
 ADD cli/stable/stable /usr/local/bin/
-ENTRYPOINT ["stable"] 
+CMD ["stable"]
