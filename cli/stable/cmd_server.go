@@ -142,12 +142,12 @@ func (c *ServerCommand) listen() error {
 }
 
 func (c *ServerCommand) getACME() (*acmewrapper.AcmeWrapper, error) {
-	cert := "cert.pem"
+	cert := filepath.Join(c.ACMEFolder, "cert.pem")
 	if c.CertFile == "" {
 		cert = c.CertFile
 	}
 
-	key := "key.pem"
+	key := filepath.Join(c.ACMEFolder, "key.pem")
 	if c.KeyFile == "" {
 		key = c.KeyFile
 	}
