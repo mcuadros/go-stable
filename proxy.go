@@ -58,7 +58,7 @@ func (s *Server) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ref = s.mutateTagToBranch(ref)
+	ref = s.mutateTagToBranch(ref, pkg.Constrain)
 	info := s.buildGitUploadPackInfo(ref)
 
 	w.Header().Set("Content-Type", "application/x-git-upload-pack-advertisement")
@@ -79,16 +79,10 @@ func (s *Server) getVersion(f *Fetcher, pkg *Package) (*plumbing.Reference, erro
 	return v, nil
 }
 
-// we mutate the tag into a branch to avoid detached branches and allow to the
-// user now the current tag selected
-func (s *Server) mutateTagToBranch(ref *plumbing.Reference) *plumbing.Reference {
-	if ref.IsBranch() {
-		return ref
-	}
-
-	branch := plumbing.ReferenceName("refs/heads/" + ref.Name().Short())
+// we mutate the tag into a branch to avoid detached branches
+func (s *Server) mutateTagToBranch(ref *plumbing.Reference, constraint string) *plumbing.Reference {
+	branch := plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", constraint))
 	return plumbing.NewHashReference(branch, ref.Hash())
-
 }
 
 func (s *Server) buildGitUploadPackInfo(ref *plumbing.Reference) *common.GitUploadPackInfo {
