@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const DefaultBaseRoute = "/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}@{version:v[0-9.]+}"
+const DefaultBaseRoute = "/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}"
 
 type Server struct {
 	http.Server

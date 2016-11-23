@@ -11,12 +11,12 @@ type ProxySuite struct{}
 var _ = Suite(&ProxySuite{})
 
 func (s *ProxySuite) TestDoMetaImportResponse(c *C) {
-	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases@v1?go-get=1", nil)
+	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases.v1?go-get=1", nil)
 	s.doTestDoMetaImportResponse(c, r)
 }
 
 func (s *ProxySuite) TestDoMetaImportResponseSubpackage(c *C) {
-	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases/subpackage@v1?go-get=1", nil)
+	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases/subpackage.v1?go-get=1", nil)
 	s.doTestDoMetaImportResponse(c, r)
 }
 
@@ -35,7 +35,7 @@ func (s *ProxySuite) doTestDoMetaImportResponse(c *C, r *http.Request) {
 	c.Assert(string(body), Equals, ""+
 		"<html>\n"+
 		"\t\t<head>\n"+
-		"\t\t\t<meta name=\"go-import\" content=\"foo.bar/git-fixtures/releases@v1 git https://foo.bar/git-fixtures/releases@v1\">\n"+
+		"\t\t\t<meta name=\"go-import\" content=\"foo.bar/git-fixtures/releases.v1 git https://foo.bar/git-fixtures/releases.v1\">\n"+
 		"\t\t</head>\n"+
 		"\t\t<body></body>\n"+
 		"\t</html>",
@@ -45,7 +45,7 @@ func (s *ProxySuite) doTestDoMetaImportResponse(c *C, r *http.Request) {
 }
 
 func (s *ProxySuite) TestDoUploadPackInfoResponse(c *C) {
-	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases@v1/info/refs", nil)
+	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases.v1/info/refs", nil)
 	w := httptest.NewRecorder()
 
 	server := NewDefaultServer("foo.bar")
@@ -67,7 +67,7 @@ func (s *ProxySuite) TestDoUploadPackInfoResponse(c *C) {
 }
 
 func (s *ProxySuite) TestDoUploadPackInfoResponsePrivate(c *C) {
-	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/private@v1/info/refs", nil)
+	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/private.v1/info/refs", nil)
 	w := httptest.NewRecorder()
 
 	server := NewDefaultServer("foo.bar")
@@ -79,7 +79,7 @@ func (s *ProxySuite) TestDoUploadPackInfoResponsePrivate(c *C) {
 }
 
 func (s *ProxySuite) TestDoUploadPackResponse(c *C) {
-	r, _ := http.NewRequest("POST", "http://foo.bar/git-fixtures/releases@v1/git-upload-pack", nil)
+	r, _ := http.NewRequest("POST", "http://foo.bar/git-fixtures/releases.v1/git-upload-pack", nil)
 	w := httptest.NewRecorder()
 
 	server := NewDefaultServer("foo.bar")
@@ -116,7 +116,7 @@ func (s *ProxySuite) TestDoRootRedirect(c *C) {
 }
 
 func (s *ProxySuite) TestDoPackageRedirect(c *C) {
-	r, _ := http.NewRequest("GET", "http://foo.bar/org/repository@v1", nil)
+	r, _ := http.NewRequest("GET", "http://foo.bar/org/repository.v1", nil)
 	w := httptest.NewRecorder()
 
 	server := NewDefaultServer("foo.bar")

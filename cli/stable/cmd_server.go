@@ -13,18 +13,22 @@ import (
 	"github.com/urfave/negroni"
 )
 
+const (
+	BaseRoute       = "/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}"
+	BaseRouteOrg    = "/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}"
+	BaseRouteSrvOrg = "/{srv:[a-z0-9-.]+}/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}"
+)
+
 type ServerCommand struct {
 	Host         string `long:"host" description:"host of the server"`
 	Server       string `long:"server" default:"github.com" description:"repository git server"`
-	Organization string `long:"organazation" description:"repository organization"`
+	Organization string `long:"organization" description:"repository organization"`
 	Repository   string `long:"repository" default:"github.com" description:"repository name"`
 	BaseRoute    string `long:"base-route" description:"base gorilla/mux route"`
 
 	Addr         string `long:"addr" default:":443" description:"http server addr"`
-	RedirectAddr string `long:"redirect-addr" default:":80" description:"http to https redirect server addr"`
-	CertFile     string `long:"tls-cert" description:"TLS certificate file path."`
-	KeyFile      string `long:"tls-key" description:"TLS key file path."`
-	ACMEFolder   string `long:"acme-folder" description:"folder where all ACME generated certs are stored"`
+	RedirectAddr string `long:"redirect-addr" description:"http to https redirect server addr"`
+	CertFolder   string `long:"certs" default:"/certificates" description:"TLS certificate folder"`
 
 	LogLevel  string `long:"log-level" default:"info" description:"log level, values: debug, info, warn or panic"`
 	LogFormat string `long:"log-format" default:"text" description:"log format, values: text or json"`
@@ -52,7 +56,7 @@ func (c *ServerCommand) buildServer() error {
 	}
 
 	if c.BaseRoute == "" {
-		c.BaseRoute = stable.DefaultBaseRoute
+		c.BaseRoute = c.getBaseRoute()
 	}
 
 	c.s = stable.NewServer(c.BaseRoute, c.Host)
@@ -62,6 +66,22 @@ func (c *ServerCommand) buildServer() error {
 	c.s.Default.Repository = c.Repository
 
 	return nil
+}
+
+func (c *ServerCommand) getBaseRoute() string {
+	if c.BaseRoute != "" {
+		return c.BaseRoute
+	}
+
+	if c.Server == "" {
+		return BaseRouteSrvOrg
+	}
+
+	if c.Organization == "" {
+		return BaseRouteOrg
+	}
+
+	return BaseRoute
 }
 
 func (c *ServerCommand) buildMiddleware() error {
@@ -142,23 +162,13 @@ func (c *ServerCommand) listen() error {
 }
 
 func (c *ServerCommand) getACME() (*acmewrapper.AcmeWrapper, error) {
-	cert := filepath.Join(c.ACMEFolder, "cert.pem")
-	if c.CertFile == "" {
-		cert = c.CertFile
-	}
-
-	key := filepath.Join(c.ACMEFolder, "key.pem")
-	if c.KeyFile == "" {
-		key = c.KeyFile
-	}
-
 	return acmewrapper.New(acmewrapper.Config{
 		Domains:          []string{c.Host},
 		Address:          c.Addr,
-		TLSCertFile:      cert,
-		TLSKeyFile:       key,
-		RegistrationFile: filepath.Join(c.ACMEFolder, "user.reg"),
-		PrivateKeyFile:   filepath.Join(c.ACMEFolder, "private.pem"),
+		TLSCertFile:      filepath.Join(c.CertFolder, "cert.pem"),
+		TLSKeyFile:       filepath.Join(c.CertFolder, "key.pem"),
+		RegistrationFile: filepath.Join(c.CertFolder, "user.reg"),
+		PrivateKeyFile:   filepath.Join(c.CertFolder, "private.pem"),
 		TOSCallback:      acmewrapper.TOSAgree,
 	})
 }
