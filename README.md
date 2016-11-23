@@ -3,7 +3,7 @@
 
 *go-stable* is a **self-hosted** service, that provides **versioned URLs** for any **Go package**, allowing to have a stable APIs. *go-stable* is heavily inspired by [gopkg.in](http://labix.org/gopkg.in).
 
-_How it works?_ Is a proxy between a git server, such as `github.com` or `bitbucket.com` and your git client, base on the requested URL (eg.: `example.com/repository.v1`) the most suitable available tag is match. 
+_How it works?_ Is a **proxy** between a git server, such as `github.com` or `bitbucket.com` and your git client, base on the requested URL (eg.: `example.com/repository.v1`) the most suitable available **tag is match** and used as **default branch**. 
 
 The key features are:
 - [Self-hosted service](#self-hosted)
