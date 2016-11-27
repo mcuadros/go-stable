@@ -1,0 +1,35 @@
+#cloud-config
+
+coreos:
+  units:
+    - name: go-stable.service
+      command: start
+      content: |
+        [Unit]
+        Description=go-stable service
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Environment=DOMAIN=<custom-domain>
+        Environment=ORGANIZATION=<organization-name-if-any>
+        Environment=CERTIFICATES_FOLDER=/data/certificates
+        Environment=VERSION=v1.0.2
+        Environment=CONTAINER_NAME=go-stable
+
+        TimeoutStartSec=20m
+        ExecStartPre=-/usr/bin/docker kill ${CONTAINER_NAME}
+        ExecStartPre=-/usr/bin/docker rm ${CONTAINER_NAME}
+        ExecStart=/usr/bin/docker run --name ${CONTAINER_NAME} \
+          -v ${CERTIFICATES_FOLDER}:/certificates \
+          -p 443:443 -p 80:80 \
+          mcuadros/go-stable:${VERSION} \
+            stable server \
+            --host ${DOMAIN} \
+            --addr :443 \
+            --redirect-addr :80 \
+            --organization ${ORGANIZATION}
+        ExecStop=/usr/bin/docker stop ${CONTAINER_NAME}
+
+        [Install]
+        WantedBy=multi-user.target
