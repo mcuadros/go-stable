@@ -1,7 +1,7 @@
 # go-stable [![Build Status](https://travis-ci.org/mcuadros/go-stable.svg?branch=master)](https://travis-ci.org/mcuadros/go-stable) [![codecov.io](https://codecov.io/github/mcuadros/go-stable/coverage.svg?branch=master)](https://codecov.io/github/mcuadros/go-stable?branch=master) [![GitHub release](https://img.shields.io/github/release/mcuadros/go-stable.svg)](https://github.com/mcuadros/go-stable) [![Docker Stars](https://img.shields.io/docker/pulls/mcuadros/go-stable.svg)](https://hub.docker.com/r/mcuadros/go-stable/tags/)
 
 
-*go-stable* is a **self-hosted** service, that provides **versioned URLs** for any **Go package**, allowing to have a stable APIs. *go-stable* is heavily inspired by [gopkg.in](http://labix.org/gopkg.in).
+*go-stable* is a **self-hosted** service, that provides **versioned URLs** for any **Go package**, allowing to have fixed versions for your dependencies. *go-stable* is heavily inspired by [gopkg.in](http://labix.org/gopkg.in).
 
 _How it works?_ Is a **proxy** between a git server, such as `github.com` or `bitbucket.com` and your git client, base on the requested URL (eg.: `example.com/repository.v1`) the most suitable available **tag is match** and used as **default branch**. 
 
@@ -45,13 +45,13 @@ This means that for example: if the repository has the following tags: `1.0`, `1
 
 ## <a name="private" /> Using go-stable with private repositories
 
-*go-stable* supports private repositories, since is based on HTTP protocol, the auth is done by [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication). 
+*go-stable* supports private repositories, since is based on HTTP protocol. The auth is done by [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication). 
 
-That means that a _user_ and _password_ should be provided, you can use the GitHub user and password (if you are not using 2FA) but we really **recommend** use a [*personal token*](https://help.github.com/articles/creating-an-access-token-for-command-line-use/), the token should be used as user, this allows to you to not disclosure your password, and invalidate the token whenever you want.
+That means that a _user_ and _password_ should be provided, you can use the GitHub user and password (if you are not using 2FA) but we really **recommend** using a [*personal token*](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) that should be used as user. This methods allows you to not disclose your password, and invalidate the token whenever you want, revoking the access to the private repos.
 
-When a package using *go-stable* is installed through `go get` the terminal prompts are disabled, to provide the the token (or the user and password...), you can do it with a [`.netrc`](https://www.gnu.org/software/inetutils/manual/html_node/The-_002enetrc-file.html) file. 
+When a package is installed through `go get` using a URL provided by *go-stable*, the terminal prompts are disabled. To provide the token (or the user and password...), you need to use a [`.netrc`](https://www.gnu.org/software/inetutils/manual/html_node/The-_002enetrc-file.html) file. 
 
-You need to add to ` ~/.netrc` (Linux or MacOS) or `%HOME%/_netrc` (Windows), the following line:
+The line to add to ` ~/.netrc` (Linux or MacOS) or `%HOME%/_netrc` (Windows) is:
 ```
 machine <your-go-stable-domain> login <your-personal-token>
 ```
@@ -60,19 +60,29 @@ If you are a bit paranoid, you can [encrypt](http://bryanwweber.com/writing/pers
 
 ## <a name="url" /> URL configuration
 
-The URL router is based on [`gorilla/mux`](https://github.com/gorilla/mux), this enables `go-stable` with extremely flexible URLs patterns, by default a couple of routes are configured, depending on the different flags provided.
+The URL router is based on [`gorilla/mux`](https://github.com/gorilla/mux), this enables `go-stable` with extremely flexible URLs patterns. By default, a couple of routes are configured, depending on the different flags provided.
 
-#### Same git provider and user/organization (most interesting setup)
-When all the packages are owned by the **same developer or organization**, in the same provider (eg.: *github.com*), you can configure the default ones using the `--server` and `--organization` flags, in this case the following pattern is used: `/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}` (eg.: `example.com/repository.v1`)
+### Same git provider and user/organization (recommended setup)
 
-#### If you need several organizations ... 
-Just leave empty the `--organization` flag, this configures: `/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}` (eg.: `example.com/org/repository.v1`).
+If all the packages are owned by the **same developer or organization** using the same provider (like *github.com*), you can specify the values for bot using the `--server` (for the provider part of the URL) and `--organization` flags.
 
-#### Multiple providers
-If you want to using different providers, I don't know why but... you can set `--server` to an empty value, then the pattern used is: `/{srv:[a-z0-9-.]+}/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}` (eg.: `example.com/github.com/org/repository.v1`)
+In this case, the pattern *go-stable* uses is `/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}` (eg.: `example.com/repository.v1`). If we used the flag `--server github.com` and `--organization mcuadros`, the previous example will look for a version matching `v1` in the repo `github.com/mcuadros/repository`.
 
-You can use any pattern, the only requirements are four variables: *srv*, *org*, *repository* and *version*. You wrote your own and configure it using `--base-route` flag.
+### If you need several organizations ... 
 
+Leaving empty or not passing an `--organization` value will require the user to add a first segment in the URL to specify the developer or organization.
+
+The pattern used in this case is `/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}`. If the flag `--server` was configured as `github.com`, `example.com/serabe/repository.v1` would look for a version matching `v1` in `github.com/serabe`.
+
+### Multiple providers
+
+Optionally, you can leave the `--server` empty too. In this case, a new segment would be needed at the beginning of the path specifying the provider. `example.com/github.com/mcuadros/go-stable.v1` will look for a version of `github.com/mcuadros/go-stable`.
+
+The pattern used is `/{srv:[a-z0-9-.]+}/{org:[a-z0-9-]+}/{repository:[a-z0-9-/]+}.{version:v[0-9.]+}`.
+
+### DIY
+
+You can use any other pattern as long as you provide the router four variables: `srv`, `org`, `repository` and `version`. This feature is configured via the `--base-route` flag and the format for the pattern is specified by [`gorilla/mux`](https://github.com/gorilla/mux).
 
 
 License
