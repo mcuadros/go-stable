@@ -43,6 +43,8 @@ This means that for example: if the repository has the following tags: `1.0`, `1
 
 *go-stable* is not very strict with the tag format, you can use `v1.0` or just `1.0`.
 
+**v0** contains more magic than expected, if none tag nor branch match, the *master* branch is returned.
+
 ## <a name="private" /> Using go-stable with private repositories
 
 *go-stable* supports private repositories, since is based on HTTP protocol. The auth is done by [basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication). 

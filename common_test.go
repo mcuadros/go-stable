@@ -25,6 +25,7 @@ func (s *SuiteCommon) TestNewVersions(c *C) {
 	refs.SetReference(plumbing.NewHashReference("refs/tags/v4.0.0-rc1", plumbing.NewHash("")))
 
 	v := NewVersions(refs)
+	c.Assert(v.BestMatch("v0").Name().String(), Equals, "refs/heads/master")
 	c.Assert(v.BestMatch("v1.1").Name().String(), Equals, "refs/tags/1.1.3")
 	c.Assert(v.BestMatch("1.1").Name().String(), Equals, "refs/tags/1.1.3")
 	c.Assert(v.BestMatch("1.1.2").Name().String(), Equals, "refs/tags/1.1.2")
@@ -32,4 +33,9 @@ func (s *SuiteCommon) TestNewVersions(c *C) {
 	c.Assert(v.BestMatch("4").Name().String(), Equals, "refs/tags/v4.0.0-rc1")
 	c.Assert(v.BestMatch("master").Name().String(), Equals, "refs/heads/master")
 	c.Assert(v.BestMatch("foo"), IsNil)
+
+	refs.SetReference(plumbing.NewHashReference("refs/tags/v0.0.0", plumbing.NewHash("")))
+
+	v = NewVersions(refs)
+	c.Assert(v.BestMatch("v0").Name().String(), Equals, "refs/tags/v0.0.0")
 }

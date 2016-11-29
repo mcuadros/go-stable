@@ -58,11 +58,19 @@ func (v Versions) BestMatch(needed string) *plumbing.Reference {
 	}
 
 	matched := v.Match(needed)
-	if len(matched) == 0 {
-		return nil
+	if len(matched) != 0 {
+		return matched[0]
 	}
 
-	return matched[0]
+	if needed == "v0" {
+		return v.handleV0()
+	}
+
+	return nil
+}
+
+func (v Versions) handleV0() *plumbing.Reference {
+	return v.BestMatch("master")
 }
 
 func (v Versions) Mayor() map[string]*plumbing.Reference {
