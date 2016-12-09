@@ -1,10 +1,13 @@
 package stable
 
-import . "gopkg.in/check.v1"
-import "net/http"
-import "net/http/httptest"
+import (
+	"io/ioutil"
+	"net/http"
 
-import "io/ioutil"
+	. "gopkg.in/check.v1"
+)
+
+import "net/http/httptest"
 
 type ProxySuite struct{}
 
@@ -16,7 +19,12 @@ func (s *ProxySuite) TestDoMetaImportResponse(c *C) {
 }
 
 func (s *ProxySuite) TestDoMetaImportResponseSubpackage(c *C) {
-	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases/subpackage.v1?go-get=1", nil)
+	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases.v1/subpackage?go-get=1", nil)
+	s.doTestDoMetaImportResponse(c, r)
+}
+
+func (s *ProxySuite) TestDoMetaImportResponseSubSubpackage(c *C) {
+	r, _ := http.NewRequest("GET", "http://foo.bar/git-fixtures/releases.v1/subpackage/subsubpackage?go-get=1", nil)
 	s.doTestDoMetaImportResponse(c, r)
 }
 
@@ -117,6 +125,40 @@ func (s *ProxySuite) TestDoRootRedirect(c *C) {
 
 func (s *ProxySuite) TestDoPackageRedirect(c *C) {
 	r, _ := http.NewRequest("GET", "http://foo.bar/org/repository.v1", nil)
+	w := httptest.NewRecorder()
+
+	server := NewDefaultServer("foo.bar")
+	server.buildRouter()
+	server.Handler.ServeHTTP(w, r)
+
+	response := w.Result()
+	body, err := ioutil.ReadAll(response.Body)
+	c.Assert(err, IsNil)
+	c.Assert(len(body), Equals, 56)
+
+	c.Assert(response.StatusCode, Equals, http.StatusFound)
+	c.Assert(response.Header.Get("Location"), Equals, "https://github.com/org/repository")
+}
+
+func (s *ProxySuite) TestDoPackageRedirectSubpackage(c *C) {
+	r, _ := http.NewRequest("GET", "http://foo.bar/org/repository.v1/subpackage", nil)
+	w := httptest.NewRecorder()
+
+	server := NewDefaultServer("foo.bar")
+	server.buildRouter()
+	server.Handler.ServeHTTP(w, r)
+
+	response := w.Result()
+	body, err := ioutil.ReadAll(response.Body)
+	c.Assert(err, IsNil)
+	c.Assert(len(body), Equals, 56)
+
+	c.Assert(response.StatusCode, Equals, http.StatusFound)
+	c.Assert(response.Header.Get("Location"), Equals, "https://github.com/org/repository")
+}
+
+func (s *ProxySuite) TestDoPackageRedirectSubSubpackage(c *C) {
+	r, _ := http.NewRequest("GET", "http://foo.bar/org/repository.v1/subpackage/subsubpackage", nil)
 	w := httptest.NewRecorder()
 
 	server := NewDefaultServer("foo.bar")
