@@ -91,6 +91,8 @@ func (s *Server) buildGitUploadPackInfo(ref *plumbing.Reference) *common.GitUplo
 	info.Refs.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, ref.Name()))
 	info.Capabilities.Set("symref", "HEAD:"+ref.Name().String())
 
+	// temporal fix due to https://github.com/golang/gddo/issues/464
+	info.Refs.SetReference(plumbing.NewHashReference("refs/heads/master", ref.Hash()))
 	return info
 }
 
@@ -174,7 +176,7 @@ func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("WWW-Authenticate", `Basic realm="GoPkg"`)
+	w.Header().Set("WWW-Authenticate", `Basic realm="go-stable"`)
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
