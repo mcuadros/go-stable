@@ -65,7 +65,8 @@ func (s *ProxySuite) TestDoUploadPackInfoResponse(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(string(body), Equals, ""+
 		"001e# service=git-upload-pack\n"+
-		"0000004c96f2c336f6aec28963719fb42513b88dfd709d09 HEAD\x00symref=HEAD:refs/heads/v1\n"+
+		"0000006696f2c336f6aec28963719fb42513b88dfd709d09 HEAD\x00symref=HEAD:refs/heads/v1 symref=HEAD:refs/heads/v1\n"+
+		"003f96f2c336f6aec28963719fb42513b88dfd709d09 refs/heads/master\n"+
 		"003b96f2c336f6aec28963719fb42513b88dfd709d09 refs/heads/v1\n"+
 		"0000",
 	)

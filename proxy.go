@@ -11,9 +11,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/client/common"
-	githttp "gopkg.in/src-d/go-git.v4/plumbing/client/http"
-	"gopkg.in/src-d/go-git.v4/plumbing/format/packp/pktline"
+	"gopkg.in/src-d/go-git.v4/plumbing/format/pktline"
+	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
+	githttp "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
 
 var (
@@ -62,7 +63,12 @@ func (s *Server) doUploadPackInfoResponse(w http.ResponseWriter, r *http.Request
 	info := s.buildGitUploadPackInfo(ref)
 
 	w.Header().Set("Content-Type", "application/x-git-upload-pack-advertisement")
-	w.Write(info.Bytes())
+
+	e := pktline.NewEncoder(w)
+	e.Encode([]byte("# service=git-upload-pack\n"))
+	e.Flush()
+
+	info.Encode(w)
 }
 
 func (s *Server) getVersion(f *Fetcher, pkg *Package) (*plumbing.Reference, error) {
@@ -85,14 +91,17 @@ func (s *Server) mutateTagToBranch(ref *plumbing.Reference, constraint string) *
 	return plumbing.NewHashReference(branch, ref.Hash())
 }
 
-func (s *Server) buildGitUploadPackInfo(ref *plumbing.Reference) *common.GitUploadPackInfo {
-	info := common.NewGitUploadPackInfo()
-	info.Refs.SetReference(ref)
-	info.Refs.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, ref.Name()))
+func (s *Server) buildGitUploadPackInfo(ref *plumbing.Reference) *packp.AdvRefs {
+	h := ref.Hash()
+
+	info := packp.NewAdvRefs()
+	info.Head = &h
+	info.AddReference(ref)
+	info.AddReference(plumbing.NewSymbolicReference(plumbing.HEAD, ref.Name()))
 	info.Capabilities.Set("symref", "HEAD:"+ref.Name().String())
 
 	// temporal fix due to https://github.com/golang/gddo/issues/464
-	info.Refs.SetReference(plumbing.NewHashReference("refs/heads/master", ref.Hash()))
+	info.AddReference(plumbing.NewHashReference("refs/heads/master", ref.Hash()))
 	return info
 }
 
@@ -120,8 +129,8 @@ func (s *Server) buildPackage(r *http.Request) *Package {
 	}
 }
 
-func (s *Server) buildEndpoint(server, orgnization, repository string) common.Endpoint {
-	e, err := common.NewEndpoint(fmt.Sprintf(
+func (s *Server) buildEndpoint(server, orgnization, repository string) transport.Endpoint {
+	e, err := transport.NewEndpoint(fmt.Sprintf(
 		"https://%s/%s/%s", server, orgnization, repository,
 	))
 
@@ -158,7 +167,7 @@ func (s *Server) doUploadPackResponse(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	switch err {
-	case common.ErrAuthorizationRequired:
+	case transport.ErrAuthorizationRequired:
 		s.requireAuth(w, r)
 		return
 	case ErrVersionNotFound:

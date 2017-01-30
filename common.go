@@ -5,14 +5,14 @@ import (
 
 	"github.com/mcuadros/go-version"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/client/common"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
 // Package represent a golang package
 type Package struct {
 	Name       string
-	Repository common.Endpoint
+	Repository transport.Endpoint
 	Constrain  string
 	Versions   Versions
 }

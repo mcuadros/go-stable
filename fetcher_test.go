@@ -5,7 +5,7 @@ import (
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/client/common"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 )
 
 type FetcherSuite struct{}
@@ -14,7 +14,7 @@ var _ = Suite(&FetcherSuite{})
 
 func (s *FetcherSuite) TestVersions(c *C) {
 	pkg := &Package{}
-	pkg.Repository, _ = common.NewEndpoint("https://github.com/git-fixtures/basic")
+	pkg.Repository, _ = transport.NewEndpoint("https://github.com/git-fixtures/basic")
 
 	f := NewFetcher(pkg, nil)
 	versions, err := f.Versions()
@@ -24,7 +24,7 @@ func (s *FetcherSuite) TestVersions(c *C) {
 
 func (s *FetcherSuite) TestFetch(c *C) {
 	pkg := &Package{}
-	pkg.Repository, _ = common.NewEndpoint("https://github.com/git-fixtures/basic")
+	pkg.Repository, _ = transport.NewEndpoint("https://github.com/git-fixtures/basic")
 
 	f := NewFetcher(pkg, nil)
 
